@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated from data/cue-sheet.xlsx by scripts/build-cuesheet.mjs
+/lib/generated/
