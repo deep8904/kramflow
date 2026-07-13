@@ -12,8 +12,11 @@ export function QuickActionButton({
 }) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       className={cn(
         "flex-1 flex flex-col items-center justify-center gap-2 rounded-2xl py-4 cursor-pointer transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active ? "bg-card text-primary" : "bg-card/50 text-muted"
       )}
       {...props}

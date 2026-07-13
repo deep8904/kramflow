@@ -25,6 +25,7 @@ export function JumpControl({ max }: { max: number }) {
           placeholder={`1–${max}`}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          aria-label="Item number"
           className="tabular-nums"
         />
         <Button

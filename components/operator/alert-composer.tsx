@@ -41,15 +41,18 @@ export function AlertComposer() {
           placeholder="e.g. Drama Team, please report Stage Left"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          aria-label="Alert message"
         />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {severities.map((s) => (
             <button
               key={s.value}
               type="button"
               onClick={() => setSeverity(s.value)}
+              aria-pressed={severity === s.value}
               className={cn(
                 "rounded-full px-3 py-1.5 text-caption font-semibold uppercase tracking-wide transition-opacity cursor-pointer whitespace-nowrap",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 s.tone,
                 severity !== s.value && "opacity-40"
               )}

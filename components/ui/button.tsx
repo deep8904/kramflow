@@ -16,6 +16,7 @@ export function Button({
     <button
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         size === "md" && "h-10 px-4 text-[15px]",
         size === "sm" && "h-8 px-3 text-sm",
         size === "lg" && "h-14 px-6 text-lg rounded-xl",

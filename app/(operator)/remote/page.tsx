@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Pause, Play, AlertTriangle, NotebookPen, Hash, X, Send } from "lucide-react";
+import { ChevronLeft, Pause, Play, AlertTriangle, NotebookPen, Hash, X, Send, Lock } from "lucide-react";
 import { useEventStore } from "@/lib/store";
 import { getSessionById, sessions } from "@/lib/cuesheet";
 import { getLive, getNext } from "@/lib/types";
 import { useCountdown } from "@/lib/use-countdown";
+import { useAuth } from "@/components/auth/auth-context";
 import { ProgressBar } from "@/components/tv/progress-bar";
 import { HoldBadge } from "@/components/tv/hold-badge";
 import { BigActionButton } from "@/components/remote/big-action-button";
@@ -17,6 +18,7 @@ type Panel = "none" | "jump" | "alert" | "notes";
 export default function RemotePage() {
   const { state, selectSession, start, next, previous, finish, togglePause, jumpTo, setAlert, setNotes } =
     useEventStore();
+  const { lock } = useAuth();
   const session = getSessionById(state.activeSessionId);
   const [panel, setPanel] = useState<Panel>("none");
 
@@ -41,13 +43,23 @@ export default function RemotePage() {
     <main className="h-screen w-screen overflow-hidden bg-background flex flex-col">
       {/* Compact header — session context, not a full navigation bar */}
       <div className="shrink-0 px-6 pt-6 pb-3">
-        <div className="flex items-center justify-between">
-          <p className="text-caption text-muted-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-caption text-muted-2 truncate min-w-0">
             {session.dayLabel} • {session.sessionLabel}
           </p>
-          <p className="text-caption text-muted-2 tabular-nums">
-            {Math.min(currentOrder ?? 0, max)} / {max}
-          </p>
+          <div className="flex items-center gap-3 shrink-0">
+            <p className="text-caption text-muted-2 tabular-nums">
+              {Math.min(currentOrder ?? 0, max)} / {max}
+            </p>
+            <button
+              type="button"
+              onClick={lock}
+              aria-label="Lock"
+              className="text-muted-2 hover:text-primary cursor-pointer p-1 -m-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
+            >
+              <Lock className="h-4 w-4" strokeWidth={2} />
+            </button>
+          </div>
         </div>
         <div className="flex gap-1.5 overflow-x-auto mt-3 pb-1 -mx-1 px-1">
           {sessions.map((s) => (
@@ -55,8 +67,10 @@ export default function RemotePage() {
               key={s.id}
               type="button"
               onClick={() => selectSession(s.id)}
+              aria-current={s.id === state.activeSessionId ? "true" : undefined}
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-caption font-medium cursor-pointer transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 s.id === state.activeSessionId ? "bg-card text-primary" : "text-muted-2"
               )}
             >
@@ -214,7 +228,12 @@ function QuickPanel({
         <p className="text-caption uppercase tracking-wide text-muted-2">
           {panel === "jump" ? "Jump to Item" : panel === "alert" ? "Send Alert" : "Stage Notes"}
         </p>
-        <button type="button" onClick={onClose} className="text-muted-2 cursor-pointer" aria-label="Close">
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-muted-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
+          aria-label="Close"
+        >
           <X className="h-4 w-4" strokeWidth={2} />
         </button>
       </div>
@@ -229,11 +248,13 @@ function QuickPanel({
             placeholder={`1–${max}`}
             value={jumpValue}
             onChange={(e) => setJumpValue(e.target.value)}
-            className="flex-1 h-14 rounded-xl bg-background border border-white/10 px-4 text-xl tabular-nums text-primary outline-none focus:border-white/25"
+            aria-label="Item number"
+            className="flex-1 h-14 rounded-xl bg-background border border-white/10 px-4 text-xl tabular-nums text-primary outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
           <button
             type="button"
-            className="h-14 w-14 rounded-xl bg-primary text-background flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40"
+            aria-label="Jump"
+            className="h-14 w-14 rounded-xl bg-primary text-background flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             disabled={!jumpValue || Number(jumpValue) < 1 || Number(jumpValue) > max}
             onClick={() => onJump(Number(jumpValue))}
           >
@@ -249,11 +270,13 @@ function QuickPanel({
             placeholder="Drama Team, report Stage Left"
             value={alertValue}
             onChange={(e) => setAlertValue(e.target.value)}
-            className="flex-1 h-14 rounded-xl bg-background border border-white/10 px-4 text-body text-primary outline-none focus:border-white/25"
+            aria-label="Alert message"
+            className="flex-1 h-14 rounded-xl bg-background border border-white/10 px-4 text-body text-primary outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
           <button
             type="button"
-            className="h-14 w-14 rounded-xl bg-primary text-background flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40"
+            aria-label="Send alert"
+            className="h-14 w-14 rounded-xl bg-primary text-background flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             disabled={!alertValue.trim()}
             onClick={() => onAlert(alertValue.trim(), "warning")}
           >
@@ -269,11 +292,13 @@ function QuickPanel({
             placeholder="Cues, mic setup, entrances…"
             value={notesValue}
             onChange={(e) => setNotesValue(e.target.value)}
-            className="flex-1 rounded-xl bg-background border border-white/10 px-4 py-3 text-body text-primary outline-none focus:border-white/25 resize-none"
+            aria-label="Stage notes"
+            className="flex-1 rounded-xl bg-background border border-white/10 px-4 py-3 text-body text-primary outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background resize-none"
           />
           <button
             type="button"
-            className="h-14 w-14 rounded-xl bg-primary text-background flex items-center justify-center shrink-0 cursor-pointer"
+            aria-label="Save notes"
+            className="h-14 w-14 rounded-xl bg-primary text-background flex items-center justify-center shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={() => onSaveNotes(notesValue)}
           >
             <Send className="h-5 w-5" strokeWidth={2} />

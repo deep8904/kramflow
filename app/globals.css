@@ -10,7 +10,7 @@
   --color-card-hover: #1d2129;
   --color-primary: #ffffff;
   --color-muted: #9ca3af;
-  --color-muted-2: #6b7280;
+  --color-muted-2: #828a9c; /* WCAG AA: 5.46:1 on background, 5.03:1 on card */
   --color-green: #22c55e;
   --color-blue: #3b82f6;
   --color-orange: #f59e0b;

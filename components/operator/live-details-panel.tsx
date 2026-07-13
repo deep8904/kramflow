@@ -60,7 +60,8 @@ export function LiveDetailsPanel({ session }: { session: Session }) {
           defaultValue={live.notes ?? ""}
           onBlur={(e) => setNotes(live.id, e.target.value)}
           placeholder="Stage notes — cues, mic setup, entrances…"
-          className="mt-3 w-full flex-1 min-h-24 rounded-lg bg-card border border-white/10 px-4 py-3 text-body text-primary placeholder:text-muted-2 outline-none focus:border-white/25 resize-none"
+          aria-label="Stage notes"
+          className="mt-3 w-full flex-1 min-h-24 rounded-lg bg-card border border-white/10 px-4 py-3 text-body text-primary placeholder:text-muted-2 outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background resize-none"
         />
       </div>
     </div>

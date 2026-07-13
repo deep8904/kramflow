@@ -20,6 +20,7 @@ export function AlertBanner({ alert }: { alert: Alert | null }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
+          role="alert"
           className={cn(
             "flex items-center gap-4 rounded-card px-8 py-6",
             severityStyles[alert.severity]
