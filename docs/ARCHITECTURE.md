@@ -18,11 +18,13 @@
 ```text
 app/
 ├── (display)/
-│   ├── green-room/page.tsx     — performer-facing TV, full-bleed, no controls
-│   └── av/page.tsx             — AV crew-facing TV, full-bleed, no controls
+│   ├── green-room/page.tsx     — performer-facing TV, full-bleed, no controls, public
+│   └── av/page.tsx             — AV crew-facing TV, full-bleed, no controls, public
 ├── (operator)/
+│   ├── layout.tsx              — wraps both routes below in the PIN gate
 │   ├── operator/page.tsx       — desktop control room, 3-column, full width
 │   └── remote/page.tsx         — one-handed mobile remote, not a resized dashboard
+├── api/auth/route.ts           — server-side PIN check, see Authentication below
 └── layout.tsx
 ```
 
@@ -66,3 +68,23 @@ the countdown just means every display computes elapsed time against
 Resuming shifts the active item's `startedAt` forward by the paused
 duration, so the countdown picks up exactly where it left off — this keeps
 every display in lockstep without needing per-client pause bookkeeping.
+
+## Authentication
+
+`/operator` and `/remote` sit behind a 4-digit PIN; `/green-room` and `/av`
+are public. The gate is `app/(operator)/layout.tsx`, wrapping both routes in
+`AuthProvider` + `PinGate` (`components/auth/`).
+
+- The PIN itself only ever exists server-side, read from `process.env.OPERATOR_PIN`
+  inside `app/api/auth/route.ts` (a Route Handler, confirmed in the build
+  output as a dynamic `ƒ` route — never statically bundled). The client
+  submits a guess, the server responds `{ok: true|false}`; the actual PIN
+  string never appears in any client-shipped JS.
+- `AuthProvider` (`components/auth/auth-context.tsx`) tracks unlock state via
+  `useSyncExternalStore` reading `sessionStorage`, using the same
+  hydrate-inside-`subscribe()` pattern as `lib/store.tsx` (see that file's
+  comment for why hydrating inside `getSnapshot()` alone doesn't reliably
+  trigger a re-render).
+- This is a convenience gate for a small trusted crew, not real
+  authentication — see `docs/DEPLOYMENT.md#hardening-authentication` for
+  what a production-grade replacement would add.

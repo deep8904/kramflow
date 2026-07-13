@@ -2,7 +2,7 @@
 
 ## Four experiences, not one responsive page
 
-StageFlow is four purpose-built surfaces (`docs/IA.md`), each with its own
+KramFlow is four purpose-built surfaces (`docs/IA.md`), each with its own
 layout logic:
 
 - **TV** (Green Room, AV) — full-bleed, hero typography, zero controls.
@@ -48,10 +48,17 @@ simultaneously (background + card + one accent).
 | `card` | `#171A21` | Card surfaces |
 | `primary` | `#FFFFFF` | Primary text |
 | `muted` | `#9CA3AF` | Secondary text, labels |
+| `muted-2` | `#828A9C` | Tertiary text — captions, timestamps, dividing labels |
 | `green` | `#22C55E` | Ready / go / live |
 | `blue` | `#3B82F6` | Informational / next |
 | `orange` | `#F59E0B` | Warning / prepare |
 | `red` | `#EF4444` | Alert / not ready |
+
+Every text color is checked against both `background` and `card` for WCAG AA
+(4.5:1 for body text). `muted-2` was originally `#6B7280` (3.91:1 — failed);
+if you ever adjust these tokens, re-verify contrast rather than eyeballing
+it — see the script in this repo's history (`git log -S muted-2`) for the
+exact method.
 
 ## Border radius
 
@@ -68,6 +75,26 @@ the denser operator dashboard uses the middle (`24px`–`40px`).
 A **fixed** margin, not a proportion of the screen: `clamp(48px, 4vw, 64px)`
 on every edge (`.tv-safe-area`). TV surfaces are full-bleed otherwise — no
 centered `max-width` container. The safe area is the only inset.
+
+## Responsive breakpoints (Operator Dashboard)
+
+The desktop dashboard stacks into a single scrollable column below `xl`
+(1280px) — including the header, which goes from a single row to a stacked
+layout. `ProgramList` rows independently switch from a two-line stacked
+layout to a single-line row at `sm` (640px), regardless of the page-level
+breakpoint.
+
+The three-column grid uses **narrower** fixed column widths at `xl`
+(`340px`/`280px`) than at `2xl` (`400px`/`320px`, 1536px+). This was a real
+bug, not a preference: at exactly `lg` (1024px) with the original fixed
+400px/320px columns, the remaining space for the program list dropped to
+~280px — not enough for the single-line row layout, causing titles to
+truncate to almost nothing. If you widen these columns again, re-check the
+1024–1439px range specifically, not just 1920px.
+
+`/remote` doesn't have this problem — it's a single column at every width by
+design — but was verified down to 320px regardless (no horizontal overflow,
+every control reachable).
 
 ## Typography scale
 
@@ -98,3 +125,19 @@ tabular numerals for countdowns and item counts.
 - No unnecessary icons — an icon only appears when it replaces a word, never
   alongside one.
 - No borders as decoration — separation comes from spacing and card surfaces.
+
+## Accessibility
+
+- Every custom interactive element carries a `focus-visible` ring:
+  `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40
+  focus-visible:ring-offset-2 focus-visible:ring-offset-background` (inputs
+  use `/30` instead of `/40`). Copy this pattern for new components.
+- Anything clickable is a real `<button>`, not a `<div onClick>` —
+  `ProgramList` rows were the one place this had drifted; fixed, see
+  `docs/CHANGELOG.md`.
+- Icon-only controls get an `aria-label`; toggle-style controls (severity
+  pills, quick-action panels, session tabs) get `aria-pressed` or
+  `aria-current`.
+- All text colors are checked against WCAG AA — see the note under Color
+  palette above.
+- Alert banners carry `role="alert"`.
