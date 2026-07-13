@@ -55,7 +55,7 @@ export default function GreenRoomPage() {
         <AlertBanner alert={state.alert} />
       </TvStack>
 
-      <div className="pt-12">
+      <div className="pt-16">
         <ProgressFooter
           dayLabel={session.dayLabel}
           sessionLabel={session.sessionLabel}

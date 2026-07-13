@@ -8,13 +8,8 @@ export function TvLayout({
   className?: string;
 }) {
   return (
-    <main className="min-h-screen bg-background flex flex-col">
-      <div
-        className={cn(
-          "tv-safe-area flex-1 flex flex-col justify-between max-w-[1400px] w-full mx-auto",
-          className
-        )}
-      >
+    <main className="h-screen w-screen overflow-hidden bg-background flex flex-col">
+      <div className={cn("tv-safe-area flex-1 flex flex-col justify-between min-h-0", className)}>
         {children}
       </div>
     </main>
@@ -28,9 +23,9 @@ export function TvSection({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <section className={cn("py-6", className)}>{children}</section>;
+  return <section className={className}>{children}</section>;
 }
 
 export function TvStack({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col gap-12">{children}</div>;
+  return <div className="flex flex-col gap-16">{children}</div>;
 }

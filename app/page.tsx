@@ -1,9 +1,10 @@
 import Link from "next/link";
 
 const surfaces = [
-  { href: "/operator", label: "Operator", desc: "Control the program" },
-  { href: "/green-room", label: "Green Room", desc: "Performer display" },
-  { href: "/av", label: "AV", desc: "Technical display" },
+  { href: "/operator", label: "Operator", desc: "Desktop control room" },
+  { href: "/remote", label: "Remote", desc: "Mobile one-hand control" },
+  { href: "/green-room", label: "Green Room", desc: "Performer TV display" },
+  { href: "/av", label: "AV", desc: "Technical TV display" },
 ];
 
 export default function Home() {

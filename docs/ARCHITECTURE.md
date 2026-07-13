@@ -18,10 +18,11 @@
 ```text
 app/
 ├── (display)/
-│   ├── green-room/page.tsx     — performer-facing TV
-│   └── av/page.tsx             — AV crew-facing TV
+│   ├── green-room/page.tsx     — performer-facing TV, full-bleed, no controls
+│   └── av/page.tsx             — AV crew-facing TV, full-bleed, no controls
 ├── (operator)/
-│   └── operator/page.tsx       — control surface
+│   ├── operator/page.tsx       — desktop control room, 3-column, full width
+│   └── remote/page.tsx         — one-handed mobile remote, not a resized dashboard
 └── layout.tsx
 ```
 

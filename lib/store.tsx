@@ -57,14 +57,24 @@ function ensureBrowserListeners() {
 function subscribe(callback: () => void): () => void {
   ensureBrowserListeners();
   listeners.add(callback);
+
+  // React calls subscribe() from a post-commit effect, which makes this a
+  // reliable place to bring in localStorage state and explicitly notify —
+  // unlike hydrating inside getSnapshot(), which depends on React's internal
+  // hydration-mismatch re-check actually firing (it didn't, reliably, here).
+  if (!hydratedFromStorage) {
+    hydratedFromStorage = true;
+    const stored = readFromStorage();
+    if (JSON.stringify(stored) !== JSON.stringify(cachedState)) {
+      cachedState = stored;
+      callback();
+    }
+  }
+
   return () => listeners.delete(callback);
 }
 
 function getSnapshot(): LiveState {
-  if (typeof window !== "undefined" && !hydratedFromStorage) {
-    hydratedFromStorage = true;
-    cachedState = readFromStorage();
-  }
   return cachedState;
 }
 

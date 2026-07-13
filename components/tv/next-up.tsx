@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import type { Program } from "@/lib/types";
 import { SectionLabel } from "./section-label";
 
@@ -14,30 +14,27 @@ export function NextUp({
   return (
     <div>
       <SectionLabel>Next</SectionLabel>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={program?.id ?? "none"}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="mt-2 flex items-baseline justify-between gap-6"
-        >
-          <div>
-            <p className="text-title text-primary">
-              {program ? program.title : "—"}
-            </p>
-            {program?.presenter && (
-              <p className="text-body text-muted mt-1">{program.presenter}</p>
-            )}
-          </div>
-          {program && prepareCue && (
-            <span className="text-caption uppercase tracking-[0.1em] text-status-orange font-semibold shrink-0">
-              {prepareCue}
-            </span>
+      <motion.div
+        key={program?.id ?? "none"}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="mt-2 flex items-baseline justify-between gap-6"
+      >
+        <div>
+          <p className="text-title text-primary">
+            {program ? program.title : "—"}
+          </p>
+          {program?.presenter && (
+            <p className="text-body text-muted mt-1">{program.presenter}</p>
           )}
-        </motion.div>
-      </AnimatePresence>
+        </div>
+        {program && prepareCue && (
+          <span className="text-caption uppercase tracking-[0.1em] text-status-orange font-semibold shrink-0">
+            {prepareCue}
+          </span>
+        )}
+      </motion.div>
     </div>
   );
 }

@@ -1,5 +1,18 @@
 # Design System
 
+## Four experiences, not one responsive page
+
+StageFlow is four purpose-built surfaces (`docs/IA.md`), each with its own
+layout logic:
+
+- **TV** (Green Room, AV) — full-bleed, hero typography, zero controls.
+- **Operator Dashboard** — dense, full-width, three-column control room.
+- **Operator Remote** — one-handed, thumb-zone controls, huge primary button.
+
+Never solve "does it work on mobile" by shrinking the desktop layout, and
+never solve "does it work on a TV" by centering the desktop layout in a
+`max-width` box. Each breakpoint gets its own layout decision.
+
 ## Principles
 
 - Minimal
@@ -42,25 +55,34 @@ simultaneously (background + card + one accent).
 
 ## Border radius
 
-`16px` on all cards and surfaces.
+`20px` on cards and surfaces, `12px` on inputs/small controls.
 
 ## Spacing scale
 
-`8 / 16 / 24 / 32 / 48` — everything aligns to an 8px grid. Default gaps
-between stacked sections are `24px`–`48px` depending on hierarchy weight.
+`8 / 16 / 24 / 32 / 48 / 64 / 80` — everything aligns to an 8px grid. TV
+surfaces use the top of this range (`64px`–`80px` between stacked sections);
+the denser operator dashboard uses the middle (`24px`–`40px`).
+
+## TV safe area
+
+A **fixed** margin, not a proportion of the screen: `clamp(48px, 4vw, 64px)`
+on every edge (`.tv-safe-area`). TV surfaces are full-bleed otherwise — no
+centered `max-width` container. The safe area is the only inset.
 
 ## Typography scale
 
+Sized for the surface, not one scale stretched across four devices.
+
 | Name | Size | Use |
 |---|---|---|
-| Hero | 64px | Live Now title |
-| Title | 40px | Section titles, Next item |
-| Subtitle | 24px | Presenter names, On Deck |
-| Body | 18px | Status rows, notes |
-| Caption | 14px | Progress footer, labels |
+| Hero | 84px | Live Now title (TV), the countdown number (Remote) |
+| Title | 36px | Section titles, current-item title (Operator/Remote) |
+| Subtitle | 28px | Program titles, Next item, presenter names |
+| Body | 20px | Secondary text — notes, requirement values, list rows |
+| Caption | 15px | Eyebrow labels only (`LIVE NOW`, footer) — never body copy |
 
 Font: system sans (SF Pro-equivalent) — `-apple-system`/Inter fallback stack,
-tabular numerals for countdowns.
+tabular numerals for countdowns and item counts.
 
 ## Motion
 

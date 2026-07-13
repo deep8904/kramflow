@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
-type Size = "sm" | "md";
+type Size = "sm" | "md" | "lg" | "xl";
 
 export function Button({
   variant = "secondary",
@@ -18,6 +18,8 @@ export function Button({
         "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer",
         size === "md" && "h-10 px-4 text-[15px]",
         size === "sm" && "h-8 px-3 text-sm",
+        size === "lg" && "h-14 px-6 text-lg rounded-xl",
+        size === "xl" && "h-20 px-8 text-xl rounded-2xl",
         variant === "primary" && "bg-primary text-background hover:bg-white/90",
         variant === "secondary" &&
           "bg-card text-primary hover:bg-card-hover border border-white/10",

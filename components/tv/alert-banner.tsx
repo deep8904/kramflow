@@ -21,11 +21,11 @@ export function AlertBanner({ alert }: { alert: Alert | null }) {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           className={cn(
-            "flex items-center gap-3 rounded-card px-6 py-5",
+            "flex items-center gap-4 rounded-card px-8 py-6",
             severityStyles[alert.severity]
           )}
         >
-          <AlertTriangle className="h-6 w-6 shrink-0" strokeWidth={2} />
+          <AlertTriangle className="h-8 w-8 shrink-0" strokeWidth={2} />
           <p className="text-subtitle font-medium">{alert.message}</p>
         </motion.div>
       )}

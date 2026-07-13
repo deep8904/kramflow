@@ -2,7 +2,7 @@
 
 import { useEventStore } from "@/lib/store";
 import { getSessionById } from "@/lib/cuesheet";
-import { audioSummary, getLive, getNext, getOnDeck, lightingSummary, videoSummary } from "@/lib/types";
+import { getLive, getNext, getOnDeck } from "@/lib/types";
 import { TvLayout, TvSection, TvStack } from "@/components/tv/tv-layout";
 import { LiveNow } from "@/components/tv/live-now";
 import { NextUp } from "@/components/tv/next-up";
@@ -32,41 +32,44 @@ export default function AvPage() {
   const currentIndex = progress?.currentOrder ?? 0;
 
   const prepTarget = next?.type === "item" ? next : live?.type === "item" ? live : null;
-  const lighting = prepTarget ? lightingSummary(prepTarget.lights) : null;
 
   return (
     <TvLayout>
-      <TvStack>
-        <TvSection>
-          <LiveNow program={live} startedAt={progress?.startedAt ?? null} pausedAt={state.pausedAt} />
-        </TvSection>
+      <div className="flex-1 grid grid-cols-[1fr_auto] gap-24 min-h-0">
+        <TvStack>
+          <TvSection>
+            <LiveNow program={live} startedAt={progress?.startedAt ?? null} pausedAt={state.pausedAt} />
+          </TvSection>
 
-        <TvSection>
-          <NextUp program={next} />
-        </TvSection>
+          <TvSection>
+            <NextUp program={next} />
+          </TvSection>
 
-        <TvSection>
-          <OnDeck program={onDeck} />
-        </TvSection>
+          <TvSection>
+            <OnDeck program={onDeck} />
+          </TvSection>
+        </TvStack>
 
         {prepTarget && (
-          <TvSection className="max-w-lg">
+          <div className="w-[420px] shrink-0 self-start pt-1">
             <SectionLabel>Requirements — {prepTarget.title}</SectionLabel>
-            <div className="mt-2 divide-y divide-white/5">
-              <RequirementRow label="Audio" value={audioSummary(prepTarget.audio)} />
-              <RequirementRow label="Video" value={videoSummary(prepTarget.video)} />
-              {lighting && <RequirementRow label="Lighting" value={lighting} />}
+            <div className="mt-4 divide-y divide-white/5">
+              <RequirementRow label="Audio Needed" value={prepTarget.audio.track ? "Yes" : "No"} />
+              <RequirementRow label="Video Needed" value={prepTarget.video.sidescreen !== "none" ? "Yes" : "No"} />
+              <RequirementRow label="Mic Required" value={prepTarget.audio.mic ? "Yes" : "No"} />
             </div>
             {prepTarget.notes && (
-              <p className="text-body text-muted mt-4">{prepTarget.notes}</p>
+              <div className="mt-8">
+                <SectionLabel>Stage Notes</SectionLabel>
+                <p className="text-body text-muted mt-2">{prepTarget.notes}</p>
+              </div>
             )}
-          </TvSection>
+          </div>
         )}
+      </div>
 
+      <div className="flex flex-col gap-10">
         <AlertBanner alert={state.alert} />
-      </TvStack>
-
-      <div className="pt-12">
         <ProgressFooter
           dayLabel={session.dayLabel}
           sessionLabel={session.sessionLabel}

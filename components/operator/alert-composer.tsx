@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEventStore } from "@/lib/store";
 import type { AlertSeverity } from "@/lib/types";
+import { SectionLabel } from "@/components/tv/section-label";
 import { cn } from "@/lib/utils";
 
 const severities: { value: AlertSeverity; label: string; tone: string }[] = [
@@ -22,22 +22,20 @@ export function AlertComposer() {
 
   if (state.alert) {
     return (
-      <Card className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-caption uppercase tracking-wide text-muted-2">Active Alert</p>
-          <p className="text-body text-primary mt-1">{state.alert.message}</p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={dismissAlert}>
+      <div>
+        <SectionLabel>Active Alert</SectionLabel>
+        <p className="text-body text-primary mt-3">{state.alert.message}</p>
+        <Button variant="secondary" size="sm" className="mt-4 w-full" onClick={dismissAlert}>
           <X className="h-4 w-4" strokeWidth={2} />
           Dismiss
         </Button>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <p className="text-caption uppercase tracking-wide text-muted-2">Raise Alert</p>
+    <div>
+      <SectionLabel>Raise Alert</SectionLabel>
       <div className="mt-3 flex flex-col gap-3">
         <Input
           placeholder="e.g. Drama Team, please report Stage Left"
@@ -73,6 +71,6 @@ export function AlertComposer() {
           Post Alert
         </Button>
       </div>
-    </Card>
+    </div>
   );
 }
