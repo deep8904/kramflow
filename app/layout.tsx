@@ -9,8 +9,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "StageFlow",
-  description: "Real-time production display for BAPS Phoenix.",
+  title: {
+    default: "KramFlow",
+    template: "%s · KramFlow",
+  },
+  description:
+    "KramFlow — a live event operating system for coordinating stage managers, AV operators, and performers across TV displays and mobile control.",
 };
 
 export default function RootLayout({

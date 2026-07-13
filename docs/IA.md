@@ -1,6 +1,6 @@
 # Information Architecture
 
-StageFlow is four distinct experiences, not one page that resizes. Each is
+KramFlow is four distinct experiences, not one page that resizes. Each is
 optimized for its device and its user — see `docs/DESIGN_SYSTEM.md` for the
 full rationale.
 

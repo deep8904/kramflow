@@ -1,4 +1,4 @@
-# StageFlow
+# KramFlow
 
 A real-time production dashboard for BAPS Phoenix, built around the Satsang
 Shibir 2026 cue sheet (`data/cue-sheet.xlsx`) — six sessions across three
@@ -6,7 +6,7 @@ days, ~250 cues total.
 
 ## Purpose
 
-StageFlow replaces the run-of-show spreadsheet that gets shouted across a green
+KramFlow replaces the run-of-show spreadsheet that gets shouted across a green
 room. It is a real-time production companion designed for Smart TVs placed in:
 
 - Green Room

@@ -1,6 +1,6 @@
 # Data Model
 
-StageFlow is built around one real source file: `data/cue-sheet.xlsx`, the
+KramFlow is built around one real source file: `data/cue-sheet.xlsx`, the
 Satsang Shibir 2026 cue sheet. `scripts/build-cuesheet.mjs` parses it into
 `lib/generated/cuesheet.json` automatically before every `dev`/`build` (see
 `predev`/`prebuild` in `package.json`). The raw spreadsheet is never shipped

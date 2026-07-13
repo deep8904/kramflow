@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <main className="min-h-screen flex-1 flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-12">
-        <h1 className="text-title text-primary">StageFlow</h1>
+        <h1 className="text-title text-primary">KramFlow</h1>
         <div className="flex gap-4">
           {surfaces.map((s) => (
             <Link

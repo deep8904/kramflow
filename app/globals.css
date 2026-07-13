@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  StageFlow is dark-mode only by design (see docs/DESIGN_SYSTEM.md).
+  KramFlow is dark-mode only by design (see docs/DESIGN_SYSTEM.md).
   There is no light theme and no prefers-color-scheme switch.
 */
 :root {
