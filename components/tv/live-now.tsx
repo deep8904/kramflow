@@ -11,10 +11,12 @@ export function LiveNow({
   program,
   startedAt,
   pausedAt,
+  isFinished,
 }: {
   program: Program | null;
   startedAt: string | null;
   pausedAt?: string | null;
+  isFinished?: boolean;
 }) {
   const countdown = useCountdown(startedAt, program?.durationMinutes ?? 0, pausedAt);
 
@@ -61,7 +63,7 @@ export function LiveNow({
           transition={{ duration: 0.25 }}
           className="mt-3"
         >
-          <h1 className="text-hero text-muted">Not Started</h1>
+          <h1 className="text-hero text-muted">{isFinished ? "Session Finished" : "Not Started"}</h1>
         </motion.div>
       )}
     </div>

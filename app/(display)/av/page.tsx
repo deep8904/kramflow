@@ -30,6 +30,7 @@ export default function AvPage() {
   const progress = state.progressBySession[state.activeSessionId];
   const total = session.items.length;
   const currentIndex = progress?.currentOrder ?? 0;
+  const isFinished = currentIndex > total;
 
   const prepTarget = next?.type === "item" ? next : live?.type === "item" ? live : null;
 
@@ -38,7 +39,12 @@ export default function AvPage() {
       <div className="flex-1 grid grid-cols-[1fr_auto] gap-24 min-h-0">
         <TvStack>
           <TvSection>
-            <LiveNow program={live} startedAt={progress?.startedAt ?? null} pausedAt={state.pausedAt} />
+            <LiveNow
+              program={live}
+              startedAt={progress?.startedAt ?? null}
+              pausedAt={state.pausedAt}
+              isFinished={isFinished}
+            />
           </TvSection>
 
           <TvSection>
@@ -73,7 +79,7 @@ export default function AvPage() {
         <ProgressFooter
           dayLabel={session.dayLabel}
           sessionLabel={session.sessionLabel}
-          currentIndex={currentIndex}
+          currentIndex={Math.min(currentIndex, total)}
           total={total}
         />
       </div>

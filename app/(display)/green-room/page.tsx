@@ -29,12 +29,18 @@ export default function GreenRoomPage() {
   const progress = state.progressBySession[state.activeSessionId];
   const total = session.items.length;
   const currentIndex = progress?.currentOrder ?? 0;
+  const isFinished = currentIndex > total;
 
   return (
     <TvLayout>
       <TvStack>
         <TvSection>
-          <LiveNow program={live} startedAt={progress?.startedAt ?? null} pausedAt={state.pausedAt} />
+          <LiveNow
+            program={live}
+            startedAt={progress?.startedAt ?? null}
+            pausedAt={state.pausedAt}
+            isFinished={isFinished}
+          />
         </TvSection>
 
         <TvSection>
@@ -59,7 +65,7 @@ export default function GreenRoomPage() {
         <ProgressFooter
           dayLabel={session.dayLabel}
           sessionLabel={session.sessionLabel}
-          currentIndex={currentIndex}
+          currentIndex={Math.min(currentIndex, total)}
           total={total}
         />
       </div>

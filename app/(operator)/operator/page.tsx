@@ -79,7 +79,7 @@ export default function OperatorPage() {
           <ProgressFooter
             dayLabel={session.dayLabel}
             sessionLabel={session.sessionLabel}
-            currentIndex={progress?.currentOrder ?? 0}
+            currentIndex={Math.min(progress?.currentOrder ?? 0, session.items.length)}
             total={session.items.length}
           />
         </footer>

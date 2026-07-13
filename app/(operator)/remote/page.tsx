@@ -46,7 +46,7 @@ export default function RemotePage() {
             {session.dayLabel} • {session.sessionLabel}
           </p>
           <p className="text-caption text-muted-2 tabular-nums">
-            {currentOrder ?? 0} / {max}
+            {Math.min(currentOrder ?? 0, max)} / {max}
           </p>
         </div>
         <div className="flex gap-1.5 overflow-x-auto mt-3 pb-1 -mx-1 px-1">
