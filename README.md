@@ -31,6 +31,23 @@ All four stay in sync. Advance the program from a phone backstage, and every TV 
 - **PIN-gated control surfaces** — `/operator` and `/remote` require a 4-digit PIN, checked server-side; the TV displays stay public.
 - **Dark mode only, TV-legible typography** — designed to be read from 5–15 feet away on a 1920×1080 display, and to feel calm rather than like an admin panel.
 
+## Display Engine (preview, this branch)
+
+This branch (`feature/kramflow-display-engine`) adds a new, additive real-time display subsystem — the foundation for a Presenter Confidence Monitor plus next-generation Green Room, AV, Lobby, and Volunteer displays, a Broadcast Center, and a Display Manager. It does not modify any existing route, component, or data model; the only touched file in the entire diff is `app/page.tsx` (an additive, flag-gated launcher section).
+
+- **Presenter Display** (`/displays/presenter`) — 6 modes (Countdown, Count-up, Session, Clock, Minimal, Program), auto-follows the Operator Dashboard with manual override, Hold Mode, keyboard shortcuts, fullscreen + wake lock.
+- **Green Room / AV / Lobby / Volunteer displays** (`/displays/*`) — new routes, distinct from and coexisting with the existing `/green-room` and `/av`, all reading the same shared program/session state.
+- **Broadcast Center** (`/broadcast`) — targeted messaging (all/type/display/group) with emergency override, scheduling, templates, and history. PIN-gated via the existing `(operator)` auth.
+- **Display Manager** (`/display-manager`) — live registry of connected displays with status/latency, remote commands (fullscreen, test message, reload), live preview, and screenshot capture. PIN-gated the same way.
+
+Everything above is invisible from the launcher until this flag is set at build time:
+
+```bash
+NEXT_PUBLIC_DISPLAY_ENGINE_ENABLED=1 npm run build
+```
+
+The routes themselves are always reachable directly by URL regardless of the flag. Full architecture, transport design (BroadcastChannel by default, optional WebSocket relay for cross-device sync), and every simplification/limitation found during testing: [`docs/DISPLAY_ENGINE.md`](docs/DISPLAY_ENGINE.md).
+
 ## Screenshots
 
 _Coming soon — screenshots of the Operator Dashboard, Remote, Green Room, and AV displays will go here._
