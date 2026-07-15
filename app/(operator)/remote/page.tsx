@@ -1,24 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Pause, Play, AlertTriangle, NotebookPen, Hash, X, Send, Lock } from "lucide-react";
+import { ChevronLeft, Pause, Play, AlertTriangle, NotebookPen, Hash, X, Send, Lock, Megaphone } from "lucide-react";
 import { useEventStore } from "@/lib/store";
 import { getSessionById, sessions } from "@/lib/cuesheet";
 import { getLive, getNext } from "@/lib/types";
 import { useCountdown } from "@/lib/use-countdown";
 import { useAuth } from "@/components/auth/auth-context";
+import { useDisplayEngine } from "@/lib/display-engine/store";
+import { EMERGENCY_PRESETS } from "@/lib/display-engine/types";
 import { ProgressBar } from "@/components/tv/progress-bar";
 import { HoldBadge } from "@/components/tv/hold-badge";
 import { BigActionButton } from "@/components/remote/big-action-button";
 import { QuickActionButton } from "@/components/remote/quick-action-button";
 import { cn } from "@/lib/utils";
 
-type Panel = "none" | "jump" | "alert" | "notes";
+type Panel = "none" | "jump" | "alert" | "notes" | "broadcast";
 
 export default function RemotePage() {
   const { state, selectSession, start, next, previous, finish, togglePause, jumpTo, setAlert, setNotes } =
     useEventStore();
   const { lock } = useAuth();
+  const { sendBroadcast } = useDisplayEngine();
   const session = getSessionById(state.activeSessionId);
   const [panel, setPanel] = useState<Panel>("none");
 
@@ -137,6 +140,38 @@ export default function RemotePage() {
               if (live) setNotes(live.id, text);
               setPanel("none");
             }}
+            onBroadcast={(title, message) => {
+              sendBroadcast({
+                type: "info",
+                title,
+                message,
+                icon: null,
+                priority: 2,
+                target: { kind: "all" },
+                expiresInMinutes: null,
+                durationSeconds: null,
+                acknowledgementRequired: false,
+                persistent: false,
+                scheduledFor: null,
+              });
+              setPanel("none");
+            }}
+            onEmergency={(preset) => {
+              sendBroadcast({
+                type: "emergency",
+                title: preset.title,
+                message: preset.message,
+                icon: null,
+                priority: 3,
+                target: { kind: "all" },
+                expiresInMinutes: null,
+                durationSeconds: null,
+                acknowledgementRequired: true,
+                persistent: true,
+                scheduledFor: null,
+              });
+              setPanel("none");
+            }}
           />
         )}
 
@@ -193,6 +228,12 @@ export default function RemotePage() {
                 active={panel === "notes"}
                 onClick={() => setPanel(panel === "notes" ? "none" : "notes")}
               />
+              <QuickActionButton
+                icon={Megaphone}
+                label="Broadcast"
+                active={panel === "broadcast"}
+                onClick={() => setPanel(panel === "broadcast" ? "none" : "broadcast")}
+              />
             </div>
           </>
         )}
@@ -209,6 +250,8 @@ function QuickPanel({
   onJump,
   onAlert,
   onSaveNotes,
+  onBroadcast,
+  onEmergency,
 }: {
   panel: Exclude<Panel, "none">;
   onClose: () => void;
@@ -217,16 +260,26 @@ function QuickPanel({
   onJump: (order: number) => void;
   onAlert: (message: string, severity: "info" | "warning" | "critical") => void;
   onSaveNotes: (text: string) => void;
+  onBroadcast: (title: string, message: string) => void;
+  onEmergency: (preset: (typeof EMERGENCY_PRESETS)[number]) => void;
 }) {
   const [jumpValue, setJumpValue] = useState("");
   const [alertValue, setAlertValue] = useState("");
   const [notesValue, setNotesValue] = useState(currentNotes);
+  const [broadcastValue, setBroadcastValue] = useState("");
+  const [confirmEmergency, setConfirmEmergency] = useState<(typeof EMERGENCY_PRESETS)[number] | null>(null);
 
   return (
     <div className="rounded-2xl bg-card p-5 mb-3">
       <div className="flex items-center justify-between mb-3">
         <p className="text-caption uppercase tracking-wide text-muted-2">
-          {panel === "jump" ? "Jump to Item" : panel === "alert" ? "Send Alert" : "Stage Notes"}
+          {panel === "jump"
+            ? "Jump to Item"
+            : panel === "alert"
+              ? "Send Alert"
+              : panel === "notes"
+                ? "Stage Notes"
+                : "Broadcast to Displays"}
         </p>
         <button
           type="button"
@@ -303,6 +356,68 @@ function QuickPanel({
           >
             <Send className="h-5 w-5" strokeWidth={2} />
           </button>
+        </div>
+      )}
+
+      {panel === "broadcast" && (
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Message to every display"
+              value={broadcastValue}
+              onChange={(e) => setBroadcastValue(e.target.value)}
+              aria-label="Broadcast message"
+              className="flex-1 h-14 rounded-xl bg-background border border-white/10 px-4 text-body text-primary outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            />
+            <button
+              type="button"
+              aria-label="Send broadcast"
+              className="h-14 w-14 rounded-xl bg-primary text-background flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              disabled={!broadcastValue.trim()}
+              onClick={() => onBroadcast(broadcastValue.trim(), "")}
+            >
+              <Send className="h-5 w-5" strokeWidth={2} />
+            </button>
+          </div>
+
+          {confirmEmergency ? (
+            <div className="rounded-xl bg-status-red/10 border border-status-red/30 p-3">
+              <p className="text-caption text-primary">
+                Send <span className="font-semibold">{confirmEmergency.title}</span> to every display?
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  className="flex-1 h-10 rounded-lg bg-status-red text-white text-caption font-semibold cursor-pointer"
+                  onClick={() => onEmergency(confirmEmergency)}
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  className="h-10 px-4 rounded-lg text-muted text-caption cursor-pointer"
+                  onClick={() => setConfirmEmergency(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {EMERGENCY_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setConfirmEmergency(preset)}
+                  className="flex items-center gap-1.5 rounded-full bg-status-red/15 text-status-red px-3 py-1.5 text-caption font-semibold cursor-pointer"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
