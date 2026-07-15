@@ -24,7 +24,6 @@ import { useIdleVisibility } from "@/lib/display-engine/use-idle-visibility";
 import { TIMER_COLORS, TIMER_COLOR_LABELS } from "@/lib/display-engine/colors";
 import { HOLD_PRESETS, type TimerMode } from "@/lib/display-engine/types";
 import { DisplayShell } from "@/components/display-engine/display-shell";
-import { TimerRing } from "@/components/display-engine/timer-ring";
 import { HoldScreen } from "@/components/display-engine/hold-screen";
 import { BroadcastOverlay } from "@/components/display-engine/broadcast-overlay";
 import { cn } from "@/lib/utils";
@@ -96,7 +95,7 @@ export default function PresenterDisplayPage() {
   return (
     <DisplayShell>
       <HoldScreen hold={engine.hold} />
-      {display && <BroadcastOverlay displayId={display.id} displayType="presenter" />}
+      {display && <BroadcastOverlay displayId={display.id} displayType="presenter" size="large" />}
 
       {!engine.hold.active && (
         <>
@@ -130,7 +129,11 @@ export default function PresenterDisplayPage() {
             </div>
           )}
 
-          {/* Center content — mode-specific */}
+          {/* Center content — mode-specific. The countdown is the hero: for
+              every timer-bearing mode it's the single largest, most
+              dominant element on screen (clamp caps around 400px tall),
+              built for a speaker reading it at a glance from 10-20ft —
+              not a ring the eye has to trace to interpret. */}
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             {mode === "clock" && (
               <p className="text-hero text-primary tabular-nums" style={{ fontSize: "clamp(6rem, 14vw, 13rem)" }}>
@@ -141,62 +144,53 @@ export default function PresenterDisplayPage() {
             {mode === "minimal" && (
               <p
                 className="tabular-nums font-semibold leading-none"
-                style={{ fontSize: "clamp(8rem, 20vw, 18rem)", color }}
+                style={{ fontSize: "clamp(8rem, 22vw, 20rem)", color }}
               >
                 {timer.label}
               </p>
             )}
 
-            {(mode === "countdown" || mode === "count-up" || mode === "session") && (
+            {(mode === "program" || mode === "countdown" || mode === "count-up" || mode === "session") && (
               <>
-                <TimerRing fraction={timer.fraction} colorState={timer.colorState} size={480} strokeWidth={16}>
-                  <div className="flex flex-col items-center">
-                    <p
-                      className="tabular-nums font-semibold leading-none"
-                      style={{ fontSize: "clamp(4.5rem, 9vw, 7.5rem)", color }}
-                    >
-                      {mode === "countdown" ? timer.label : formatClock(timer.elapsedSeconds)}
-                    </p>
-                    <p className="text-caption uppercase tracking-wide text-muted-2 mt-4">
-                      {mode === "countdown"
-                        ? timer.isOverrun
-                          ? "over"
-                          : "remaining"
-                        : mode === "session"
-                          ? "session elapsed"
-                          : "elapsed"}
-                    </p>
-                  </div>
-                </TimerRing>
+                <p
+                  className="tabular-nums font-bold leading-none"
+                  style={{ fontSize: "clamp(9rem, 28vw, 24rem)", color }}
+                >
+                  {mode === "countdown" || mode === "program" ? timer.label : formatClock(timer.elapsedSeconds)}
+                </p>
+                <p className="text-subtitle uppercase tracking-wide text-muted-2 mt-4">
+                  {mode === "countdown" || mode === "program"
+                    ? timer.isOverrun
+                      ? "over"
+                      : "remaining"
+                    : mode === "session"
+                      ? "session elapsed"
+                      : "elapsed"}
+                </p>
+
+                <div className="w-full max-w-2xl h-2.5 rounded-full bg-white/10 mt-8 overflow-hidden shrink-0">
+                  <div
+                    className="h-full rounded-full transition-[width] duration-500 ease-linear"
+                    style={{ width: `${Math.round(Math.min(1, Math.max(0, timer.fraction)) * 100)}%`, backgroundColor: color }}
+                  />
+                </div>
+
                 {live && (
                   <div className="mt-10">
-                    <p className="text-title text-primary">{live.title}</p>
+                    <p className="text-title text-primary" style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}>
+                      {live.title}
+                    </p>
                     {live.presenter && <p className="text-subtitle text-muted mt-2">{live.presenter}</p>}
                   </div>
                 )}
-              </>
-            )}
 
-            {mode === "program" && (
-              <div className="flex items-center gap-16">
-                <TimerRing fraction={timer.fraction} colorState={timer.colorState} size={360} strokeWidth={12}>
-                  <p className="tabular-nums font-semibold leading-none" style={{ fontSize: "3.25rem", color }}>
-                    {timer.label}
-                  </p>
-                </TimerRing>
-                <div className="text-left">
-                  <p className="text-hero text-primary" style={{ fontSize: "clamp(3rem, 5vw, 4.5rem)" }}>
-                    {live ? live.title : "Not Started"}
-                  </p>
-                  {live?.presenter && <p className="text-title text-muted mt-3">{live.presenter}</p>}
-                  {next && (
-                    <div className="mt-10 pt-6 border-t border-white/10">
-                      <p className="text-caption uppercase tracking-wide text-muted-2">Next</p>
-                      <p className="text-subtitle text-muted mt-1">{next.title}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+                {mode === "program" && next && (
+                  <div className="mt-8 pt-6 border-t border-white/10">
+                    <p className="text-caption uppercase tracking-wide text-muted-2">Next</p>
+                    <p className="text-subtitle text-muted mt-1">{next.title}</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

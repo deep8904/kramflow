@@ -26,7 +26,16 @@ function effectiveExpiry(message: BroadcastMessage): number | null {
   return null;
 }
 
-export function BroadcastOverlay({ displayId, displayType }: { displayId: string; displayType: DisplayType }) {
+export function BroadcastOverlay({
+  displayId,
+  displayType,
+  size = "default",
+}: {
+  displayId: string;
+  displayType: DisplayType;
+  /** "large" is for displays read from a distance (the stage/Presenter monitor) — bigger icon, title, and message text, one banner at a time instead of three stacked. */
+  size?: "default" | "large";
+}) {
   const { state, acknowledgeBroadcast, dismissBroadcast } = useDisplayEngine();
   const [now, setNow] = useState(() => Date.now());
 
@@ -81,7 +90,7 @@ export function BroadcastOverlay({ displayId, displayType }: { displayId: string
       {!emergency && banners.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-col gap-3 p-6">
           <AnimatePresence>
-            {banners.slice(0, 3).map((message) => {
+            {banners.slice(0, size === "large" ? 1 : 3).map((message) => {
               const style = TYPE_STYLES[message.type];
               const Icon = style.icon;
               return (
@@ -91,20 +100,43 @@ export function BroadcastOverlay({ displayId, displayType }: { displayId: string
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 16 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="flex items-center gap-4 rounded-card bg-card/95 backdrop-blur px-6 py-4 shadow-lg"
+                  className={cn(
+                    "flex items-center rounded-card bg-card/95 backdrop-blur shadow-lg",
+                    size === "large" ? "gap-6 px-10 py-8" : "gap-4 px-6 py-4"
+                  )}
                 >
-                  <span className={cn("flex items-center justify-center h-10 w-10 rounded-full shrink-0", style.accent)}>
-                    <Icon className="h-5 w-5" strokeWidth={2} />
+                  <span
+                    className={cn(
+                      "flex items-center justify-center rounded-full shrink-0",
+                      size === "large" ? "h-16 w-16" : "h-10 w-10",
+                      style.accent
+                    )}
+                  >
+                    <Icon className={size === "large" ? "h-9 w-9" : "h-5 w-5"} strokeWidth={2} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-body text-primary font-semibold truncate">{message.title}</p>
-                    {message.message && <p className="text-caption text-muted truncate">{message.message}</p>}
+                    <p
+                      className={cn(
+                        "text-primary font-semibold truncate",
+                        size === "large" ? "text-title" : "text-body"
+                      )}
+                    >
+                      {message.title}
+                    </p>
+                    {message.message && (
+                      <p className={cn("text-muted truncate", size === "large" ? "text-subtitle mt-1" : "text-caption")}>
+                        {message.message}
+                      </p>
+                    )}
                   </div>
                   {!message.persistent && (
                     <button
                       type="button"
                       onClick={() => dismissBroadcast(message.id)}
-                      className="text-caption text-muted hover:text-primary cursor-pointer shrink-0"
+                      className={cn(
+                        "text-muted hover:text-primary cursor-pointer shrink-0",
+                        size === "large" ? "text-body" : "text-caption"
+                      )}
                     >
                       Dismiss
                     </button>
