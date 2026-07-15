@@ -12,12 +12,13 @@ import { SectionLabel } from "@/components/tv/section-label";
 import { ProfileEditor } from "@/components/display-engine/profile-editor";
 import { cn } from "@/lib/utils";
 
+// Only the 3 display types actually running for this event — Lobby and
+// Volunteer stay valid DisplayType values (their routes still work) but
+// aren't offered here so operators don't see dead assignment options.
 const DISPLAY_TYPES: { value: DisplayType; label: string; route: string }[] = [
   { value: "presenter", label: "Presenter", route: "/displays/presenter" },
   { value: "green-room", label: "Green Room", route: "/displays/green-room" },
   { value: "av", label: "AV", route: "/displays/av" },
-  { value: "lobby", label: "Lobby", route: "/displays/lobby" },
-  { value: "volunteer", label: "Volunteer", route: "/displays/volunteer" },
   { value: "custom", label: "Custom", route: "/displays/presenter" },
 ];
 

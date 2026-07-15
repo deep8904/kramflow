@@ -25,12 +25,11 @@ const BROADCAST_TYPES: { value: BroadcastType; label: string }[] = [
   { value: "emergency", label: "Emergency" },
 ];
 
+// Only the 3 display types actually running for this event — see app/page.tsx.
 const DISPLAY_TYPES: { value: DisplayType; label: string }[] = [
   { value: "presenter", label: "Presenter" },
   { value: "green-room", label: "Green Room" },
   { value: "av", label: "AV" },
-  { value: "lobby", label: "Lobby" },
-  { value: "volunteer", label: "Volunteer" },
   { value: "custom", label: "Custom" },
 ];
 

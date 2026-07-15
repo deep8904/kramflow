@@ -10,12 +10,16 @@ const surfaces = [
 // Display Engine surfaces stay hidden from the launcher until this is set —
 // keeps the new subsystem reviewable/mergeable without changing what today's
 // production launcher shows. See docs/DISPLAY_ENGINE.md.
+//
+// Only the 3 displays actually used for this event are linked here. Lobby
+// and Volunteer Board are fully built and still reachable directly by URL
+// (/displays/lobby, /displays/volunteer) — just intentionally unlinked from
+// every navigation surface so they don't appear as options for an event
+// that isn't running them. Revive by adding them back to this list.
 const displayEngineSurfaces = [
   { href: "/displays/presenter", label: "Presenter", desc: "Confidence monitor" },
   { href: "/displays/green-room", label: "Green Room", desc: "Display Engine" },
   { href: "/displays/av", label: "AV Waiting Room", desc: "Display Engine" },
-  { href: "/displays/lobby", label: "Lobby", desc: "Public schedule display" },
-  { href: "/displays/volunteer", label: "Volunteer Board", desc: "Team assignments" },
   { href: "/broadcast", label: "Broadcast Center", desc: "Send messages to displays" },
   { href: "/display-manager", label: "Display Manager", desc: "Manage connected displays" },
 ];
