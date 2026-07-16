@@ -12,21 +12,21 @@ import { SectionLabel } from "@/components/tv/section-label";
 import { ProfileEditor } from "@/components/display-engine/profile-editor";
 import { cn } from "@/lib/utils";
 
-// Only the 3 display types actually running for this event — Lobby and
-// Volunteer stay valid DisplayType values (their routes still work) but
-// aren't offered here so operators don't see dead assignment options.
+// The 4 canonical display types (Operator/Remote aren't Display Engine
+// surfaces, so they're not here).
 const DISPLAY_TYPES: { value: DisplayType; label: string; route: string }[] = [
-  { value: "presenter", label: "Presenter", route: "/displays/presenter" },
-  { value: "green-room", label: "Green Room", route: "/displays/green-room" },
-  { value: "av", label: "AV", route: "/displays/av" },
-  { value: "custom", label: "Custom", route: "/displays/presenter" },
+  { value: "presenter", label: "Presenter", route: "/presenter" },
+  { value: "green-room", label: "Green Room", route: "/green-room" },
+  { value: "av", label: "AV", route: "/av" },
+  { value: "general", label: "General", route: "/general" },
+  { value: "custom", label: "Custom", route: "/presenter" },
 ];
 
 const inputField =
   "bg-card border border-white/10 rounded-lg px-2.5 py-1.5 text-[14px] text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 function routeFor(type: DisplayType): string {
-  return DISPLAY_TYPES.find((t) => t.value === type)?.route ?? "/displays/presenter";
+  return DISPLAY_TYPES.find((t) => t.value === type)?.route ?? "/presenter";
 }
 
 export default function DisplayManagerPage() {
@@ -107,7 +107,7 @@ export default function DisplayManagerPage() {
 
         {displays.length === 0 ? (
           <p className="text-body text-muted-2 mt-6">
-            No displays have registered yet. Open a display route (e.g. /displays/presenter) on a device to see it here.
+            No displays have registered yet. Open a display route (e.g. /presenter) on a device to see it here.
           </p>
         ) : (
           <div className="mt-5 flex flex-col gap-3">

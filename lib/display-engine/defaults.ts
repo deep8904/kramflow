@@ -49,8 +49,8 @@ export const BUILT_IN_PROFILES: DisplayProfile[] = [
     ["timer", "program-title", "next-program", "stage-status", "alerts", "messages", "clock"]
   ),
   builtInProfile(
-    "profile-lobby",
-    "Lobby Profile",
+    "profile-general",
+    "General Profile",
     { fontScale: 1.1 },
     ["program-title", "next-program", "session-name", "messages", "clock"]
   ),
@@ -59,12 +59,6 @@ export const BUILT_IN_PROFILES: DisplayProfile[] = [
     "Green Room Profile",
     { fontScale: 1.1 },
     ["program-title", "next-program", "speaker", "running-order", "messages", "stage-status", "clock"]
-  ),
-  builtInProfile(
-    "profile-volunteer",
-    "Volunteer Profile",
-    { fontScale: 1 },
-    ["running-order", "messages", "clock"]
   ),
 ];
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Smartphone, Tv, FileSpreadsheet } from "lucide-react";
+import { Lock, Smartphone, Tv, FileSpreadsheet, Presentation, Megaphone, Settings2 } from "lucide-react";
 import { useEventStore } from "@/lib/store";
 import { useSessions } from "@/lib/use-sessions";
 import { getSessionById } from "@/lib/data/sessions";
@@ -60,10 +60,34 @@ export default function OperatorPage() {
               AV
             </Button>
           </Link>
+          <Link href="/general" target="_blank">
+            <Button variant="secondary" size="sm">
+              <Tv className="h-4 w-4" strokeWidth={2} />
+              General
+            </Button>
+          </Link>
+          <Link href="/presenter" target="_blank">
+            <Button variant="secondary" size="sm">
+              <Presentation className="h-4 w-4" strokeWidth={2} />
+              Presenter
+            </Button>
+          </Link>
           <Link href="/remote" target="_blank">
             <Button variant="secondary" size="sm">
               <Smartphone className="h-4 w-4" strokeWidth={2} />
               Remote
+            </Button>
+          </Link>
+          <Link href="/broadcast">
+            <Button variant="secondary" size="sm">
+              <Megaphone className="h-4 w-4" strokeWidth={2} />
+              Broadcast
+            </Button>
+          </Link>
+          <Link href="/display-manager">
+            <Button variant="secondary" size="sm">
+              <Settings2 className="h-4 w-4" strokeWidth={2} />
+              Displays
             </Button>
           </Link>
           <Button variant="ghost" size="sm" className="hidden xl:inline-flex" onClick={lock} aria-label="Lock">

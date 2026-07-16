@@ -10,12 +10,10 @@ import { cn } from "@/lib/utils";
 export function SessionTimeline({
   session,
   currentOrder,
-  emphasize = "presenter",
   limit,
 }: {
   session: Session;
   currentOrder: number | null;
-  emphasize?: "presenter" | "team";
   limit?: number;
 }) {
   const items = limit ? session.items.slice(0, limit) : session.items;
@@ -26,7 +24,7 @@ export function SessionTimeline({
         const isLive = currentOrder !== null && item.order === currentOrder;
         const isNext = currentOrder !== null && item.order === currentOrder + 1;
         const isPast = currentOrder !== null && item.order < currentOrder;
-        const detail = emphasize === "team" ? item.team : item.presenter;
+        const detail = item.presenter;
 
         return (
           <div key={item.id} className={cn("flex items-center gap-6 py-4", isPast && !isLive && "opacity-40")}>

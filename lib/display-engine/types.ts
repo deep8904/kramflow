@@ -18,8 +18,7 @@ export type DisplayType =
   | "presenter"
   | "green-room"
   | "av"
-  | "lobby"
-  | "volunteer"
+  | "general"
   | "custom";
 
 export type DisplayStatus = "online" | "offline";

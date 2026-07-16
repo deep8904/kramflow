@@ -16,11 +16,11 @@ import { BroadcastOverlay } from "@/components/display-engine/broadcast-overlay"
 import { SessionTimeline } from "@/components/display-engine/session-timeline";
 
 /**
- * Lobby Display — public, audience-facing, no operator controls. New
- * Display Engine route; there is no prior /lobby page to conflict with.
- * "Sponsor Slides" / "Directional Information" are intentionally scoped
- * down to a static content section rather than a full slide-management
- * system — see docs/DISPLAY_ENGINE.md for the documented simplification.
+ * General Display — public, audience-facing, no operator controls. The
+ * generic, no-department-specific screen (formerly "Lobby"). "Sponsor
+ * Slides" / "Directional Information" are intentionally scoped down to a
+ * static content section rather than a full slide-management system — see
+ * docs/DISPLAY_ENGINE.md for the documented simplification.
  */
 
 /**
@@ -38,7 +38,7 @@ function parseTimeToday(label: string, nowMs: number): number | null {
   const now = new Date(nowMs);
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0).getTime();
 }
-export default function LobbyDisplayPage() {
+export default function GeneralDisplayPage() {
   const { state: appState } = useEventStore();
   const sessions = useSessions();
   const session = getSessionById(sessions, appState.activeSessionId);
@@ -52,7 +52,7 @@ export default function LobbyDisplayPage() {
   const progress = session ? appState.progressBySession[appState.activeSessionId] : undefined;
   const currentOrder = progress?.currentOrder ?? null;
 
-  const display = useRegisterDisplay("Lobby Display", "lobby", null, (command) => {
+  const display = useRegisterDisplay("General Display", "general", null, (command) => {
     if (command.type === "reload") window.location.reload();
   });
 
@@ -70,7 +70,7 @@ export default function LobbyDisplayPage() {
   return (
     <DisplayShell wakeLockEnabled>
       <HoldScreen hold={engine.hold} />
-      {display && <BroadcastOverlay displayId={display.id} displayType="lobby" />}
+      {display && <BroadcastOverlay displayId={display.id} displayType="general" />}
 
       {!engine.hold.active && (
         <>
@@ -123,7 +123,7 @@ export default function LobbyDisplayPage() {
                 <p className="text-caption uppercase tracking-wide text-muted-2 mb-2">Today&apos;s Schedule</p>
                 <div className="flex-1 overflow-y-auto rounded-card bg-card/50 px-6">
                   {session && (
-                    <SessionTimeline session={session} currentOrder={currentOrder} emphasize="presenter" limit={8} />
+                    <SessionTimeline session={session} currentOrder={currentOrder} limit={8} />
                   )}
                 </div>
               </div>

@@ -136,7 +136,7 @@ export default function AvDisplayPage() {
             <div className="min-h-0 flex flex-col">
               <p className="text-caption uppercase tracking-wide text-muted-2 mb-2">Live Timeline</p>
               <div className="flex-1 overflow-y-auto rounded-card bg-card/50 px-6">
-                {session && <SessionTimeline session={session} currentOrder={currentOrder} emphasize="presenter" />}
+                {session && <SessionTimeline session={session} currentOrder={currentOrder} />}
               </div>
             </div>
           </div>
