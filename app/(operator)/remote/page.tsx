@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ChevronLeft, Pause, Play, AlertTriangle, NotebookPen, Hash, X, Send, Lock, Megaphone } from "lucide-react";
 import { useEventStore } from "@/lib/store";
-import { getSessionById, sessions } from "@/lib/cuesheet";
+import { useSessions } from "@/lib/use-sessions";
+import { getSessionById } from "@/lib/data/sessions";
 import { getLive, getNext } from "@/lib/types";
 import { useCountdown } from "@/lib/use-countdown";
 import { useAuth } from "@/components/auth/auth-context";
@@ -22,7 +23,8 @@ export default function RemotePage() {
     useEventStore();
   const { lock } = useAuth();
   const { sendBroadcast } = useDisplayEngine();
-  const session = getSessionById(state.activeSessionId);
+  const sessions = useSessions();
+  const session = getSessionById(sessions, state.activeSessionId);
   const [panel, setPanel] = useState<Panel>("none");
 
   const progress = session ? state.progressBySession[state.activeSessionId] : undefined;

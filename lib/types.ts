@@ -1,5 +1,7 @@
 export type ProgramItemType = "item" | "break";
 
+export type ProgramStatus = "confirmed" | "draft" | "cut" | "tbd";
+
 export type SidescreenMode = "none" | "slides" | "live_feed";
 
 export interface AudioRequirement {
@@ -26,6 +28,10 @@ export interface Program {
   kicker: string | null;
   itemCode: string | null;
   presenter: string | null;
+  /** New in the Supabase-backed schema — "Presenter requirement" column. */
+  presenterRequirement: string | null;
+  /** New — phone/walkie contact so Green Room can page a late presenter. */
+  presenterContact: string | null;
   sectionLabel: string | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
@@ -33,10 +39,18 @@ export interface Program {
   audio: AudioRequirement;
   video: VideoRequirement;
   lights: LightingRequirement;
+  /** New — live-feed camera angle, shown on the AV view. */
+  cameraAngle: string | null;
+  /** New — props left/right placement, shown on the Green Room props panel (Phase 3). */
+  props: string | null;
   curtains: "open" | "closed" | null;
   stageNotes: string | null;
   team: string | null;
   notes: string | null;
+  /** New — Confirmed/Draft/Cut/TBD, lets an item be staged without going live. */
+  status: ProgramStatus;
+  /** New — visual flag for critical cues on the operator's rundown list. */
+  colorTag: string | null;
 }
 
 export interface Session {

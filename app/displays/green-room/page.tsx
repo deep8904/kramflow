@@ -2,7 +2,8 @@
 
 import { CheckCircle2, Circle } from "lucide-react";
 import { useEventStore } from "@/lib/store";
-import { getSessionById } from "@/lib/cuesheet";
+import { useSessions } from "@/lib/use-sessions";
+import { getSessionById } from "@/lib/data/sessions";
 import { effectiveNotes, getLive, getNext, getOnDeck } from "@/lib/types";
 import { useDisplayEngine } from "@/lib/display-engine/store";
 import { useDisplayTimer, useDisplayClock } from "@/lib/display-engine/use-display-timer";
@@ -23,7 +24,8 @@ import { cn } from "@/lib/utils";
  */
 export default function GreenRoomDisplayPage() {
   const { state: appState } = useEventStore();
-  const session = getSessionById(appState.activeSessionId);
+  const sessions = useSessions();
+  const session = getSessionById(sessions, appState.activeSessionId);
   const { state: engine, setSpeakerReady } = useDisplayEngine();
 
   const { offsetMs } = useTimeSync();
@@ -117,7 +119,12 @@ export default function GreenRoomDisplayPage() {
                     </span>
                   </div>
                   <p className="text-subtitle text-primary mt-3">{next.title}</p>
-                  {next.presenter && <p className="text-body text-muted mt-2">{next.presenter}</p>}
+                  {next.presenter && (
+                    <p className="text-body text-muted mt-2">
+                      {next.presenter}
+                      {next.presenterContact && <span className="text-muted-2"> · {next.presenterContact}</span>}
+                    </p>
+                  )}
 
                   <button
                     type="button"
@@ -131,6 +138,13 @@ export default function GreenRoomDisplayPage() {
                     {nextReady ? <CheckCircle2 className="h-5 w-5" strokeWidth={2} /> : <Circle className="h-5 w-5" strokeWidth={2} />}
                     {nextReady ? "Speaker Ready" : "Mark Speaker Ready"}
                   </button>
+                </div>
+              )}
+
+              {next?.props && (
+                <div className="rounded-card bg-card/50 p-6">
+                  <p className="text-caption uppercase tracking-wide text-muted-2">Props — {next.title}</p>
+                  <p className="text-body text-primary mt-2">{next.props}</p>
                 </div>
               )}
 

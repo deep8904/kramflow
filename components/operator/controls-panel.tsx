@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/tv/section-label";
 import { JumpControl } from "./jump-control";
 import { AlertComposer } from "./alert-composer";
+import { ActivityLog } from "./activity-log";
 import { OperatorBroadcastPanel } from "@/components/display-engine/operator-broadcast-panel";
 import type { Session } from "@/lib/types";
 
@@ -82,6 +83,10 @@ export function ControlsPanel({ session }: { session: Session }) {
       </div>
 
       <OperatorBroadcastPanel />
+
+      <div className="border-t border-white/5 pt-8">
+        <ActivityLog />
+      </div>
     </div>
   );
 }

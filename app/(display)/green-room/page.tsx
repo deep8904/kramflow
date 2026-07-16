@@ -1,7 +1,8 @@
 "use client";
 
 import { useEventStore } from "@/lib/store";
-import { getSessionById } from "@/lib/cuesheet";
+import { useSessions } from "@/lib/use-sessions";
+import { getSessionById } from "@/lib/data/sessions";
 import { getLive, getNext, getOnDeck } from "@/lib/types";
 import { TvLayout, TvSection, TvStack } from "@/components/tv/tv-layout";
 import { LiveNow } from "@/components/tv/live-now";
@@ -13,7 +14,8 @@ import { ProgressFooter } from "@/components/tv/progress-footer";
 
 export default function GreenRoomPage() {
   const { state } = useEventStore();
-  const session = getSessionById(state.activeSessionId);
+  const sessions = useSessions();
+  const session = getSessionById(sessions, state.activeSessionId);
 
   if (!session) {
     return (

@@ -12,7 +12,8 @@ import {
   Radio,
 } from "lucide-react";
 import { useEventStore } from "@/lib/store";
-import { getSessionById } from "@/lib/cuesheet";
+import { useSessions } from "@/lib/use-sessions";
+import { getSessionById } from "@/lib/data/sessions";
 import { getLive, getNext } from "@/lib/types";
 import { useDisplayEngine } from "@/lib/display-engine/store";
 import { useDisplayTimer, useDisplayClock, formatClock } from "@/lib/display-engine/use-display-timer";
@@ -46,7 +47,8 @@ function holdPayload(preset: (typeof HOLD_PRESETS)[number]) {
 
 export default function PresenterDisplayPage() {
   const { state: appState } = useEventStore();
-  const session = getSessionById(appState.activeSessionId);
+  const sessions = useSessions();
+  const session = getSessionById(sessions, appState.activeSessionId);
   const { state: engine, setTimerMode, setTimerSource, pauseTimer, resumeTimer, resetTimer, adjustTimer, activateHold, deactivateHold } =
     useDisplayEngine();
 

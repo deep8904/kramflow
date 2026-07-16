@@ -1,7 +1,8 @@
 "use client";
 
 import { useEventStore } from "@/lib/store";
-import { getSessionById } from "@/lib/cuesheet";
+import { useSessions } from "@/lib/use-sessions";
+import { getSessionById } from "@/lib/data/sessions";
 import { audioSummary, getLive, getNext, lightingSummary, videoSummary } from "@/lib/types";
 import { useDisplayEngine } from "@/lib/display-engine/store";
 import { useDisplayTimer, useDisplayClock } from "@/lib/display-engine/use-display-timer";
@@ -23,7 +24,8 @@ import { cn } from "@/lib/utils";
  */
 export default function AvDisplayPage() {
   const { state: appState } = useEventStore();
-  const session = getSessionById(appState.activeSessionId);
+  const sessions = useSessions();
+  const session = getSessionById(sessions, appState.activeSessionId);
   const { state: engine } = useDisplayEngine();
 
   const { offsetMs } = useTimeSync();
@@ -116,6 +118,10 @@ export default function AvDisplayPage() {
                     <RequirementRow label="Microphone / Track" value={audioSummary(cueTarget.audio)} />
                     <RequirementRow label="Video / Presentation" value={videoSummary(cueTarget.video)} />
                     <RequirementRow label="Lighting" value={lightingSummary(cueTarget.lights) ?? "None"} />
+                    {cueTarget.cameraAngle && <RequirementRow label="Camera Angle" value={cueTarget.cameraAngle} />}
+                    {cueTarget.curtains && (
+                      <RequirementRow label="Curtains" value={cueTarget.curtains === "open" ? "Open" : "Closed"} />
+                    )}
                   </div>
                   {cueTarget.stageNotes && (
                     <div className="mt-4">

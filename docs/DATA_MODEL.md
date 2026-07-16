@@ -1,70 +1,93 @@
 # Data Model
 
-KramFlow is built around one real source file: `data/cue-sheet.xlsx`, the
-Satsang Shibir 2026 cue sheet. `scripts/build-cuesheet.mjs` parses it into
-`lib/generated/cuesheet.json` automatically before every `dev`/`build` (see
-`predev`/`prebuild` in `package.json`). The raw spreadsheet is never shipped
-to the client or shown to users — only the normalized data below is.
+KramFlow's reference data (`sessions`, `programs`) and live state
+(`live_state`) live in Supabase Postgres — see `supabase/schema.sql` for
+the authoritative schema and `docs/ARCHITECTURE.md` for why. This replaces
+the earlier build-time-JSON-from-a-bundled-spreadsheet model: the cue
+sheet is dynamic now, editable at runtime via Excel upload or an ad-hoc
+item form, not baked in at build time.
 
-## Source file shape
+## Getting data in
 
-Each sheet (tab) is one **Session** — Fri Evening, Sat Morning 1&2, Sat
-Afternoon, Sat Evening 1&2, Sun Morning 1&2, Sun Afternoon. Every sheet
-shares the same column layout, with two quirks the parser handles:
+Two paths, both going through `lib/parse-cuesheet.ts` (Excel) or
+`lib/validation/program.ts` (form) — see below:
 
-- Friday Evening has an extra "Curtains" column the others don't. Columns
-  are resolved by header text, not position, so this doesn't break parsing.
-- The "#" column (order) restarts at 0 partway through a few sheets, where
-  one sheet actually contains two sub-sessions (e.g. "Morning Session 1 & 2"
-  back to back). The parser assigns its own contiguous `order` per session
-  and ignores the raw "#".
+1. **Initial load** — `npm run seed` parses `data/cue-sheet.xlsx` (or any
+   `.xlsx` at that path) and upserts it into Supabase. Run once against a
+   fresh project, or again to reset from the bundled file.
+2. **Runtime** — an operator uploads a `.xlsx` from `/operator/cue-sheet`
+   (parsed + validated with a dry-run preview before committing —
+   `app/api/cue-sheet/upload/route.ts`), or adds/edits a single item via
+   the form (`components/forms/program-form.tsx`, `app/api/programs/*`).
+   Both go through the same `lib/validation/program.ts` Zod schema, so the
+   column list and its constraints are defined exactly once.
 
-Row types the parser distinguishes:
+## Source file shape (Excel import)
+
+Each sheet (tab) is one **Session**. Columns are resolved by header text,
+not position, via `lib/parse-cuesheet.ts`'s `resolveColumns()` — this is
+what lets a re-uploaded or reordered spreadsheet still parse correctly.
 
 | Row shape | Meaning | Result |
 |---|---|---|
-| Numeric "#" | A real cue | `Program` with `type: "item"` |
-| Text spanning the row, keyword like "Break"/"Lunch"/"Dinner"/"End of Day" | A meal or transition | `Program` with `type: "break"` |
-| Text spanning the row, matches `Day \d`, `Section \d`, or "Conclusion" | Grouping context, not a moment in time | Attached as `sectionLabel` to the following items, not its own row |
+| Numeric "#" | A real cue | `programs` row with `type: "item"` |
+| Text spanning the row, keyword like "Break"/"Lunch"/"Dinner"/"End of Day" | A meal or transition | `programs` row with `type: "break"` |
+| Text spanning the row, matches `Day \d`, `Section \d`, or "Conclusion" | Grouping context, not a moment in time | Attached as `section_label` to the following items, not its own row |
 | First cell literally "Duration" | Spreadsheet's own totals footer | Skipped entirely |
 
-## Program
+## `programs` table
 
-| Field | Type | Source |
+The fixed column list — single source of truth in
+`lib/validation/program.ts` (`programInputSchema`/`programRowSchema`) and
+`supabase/schema.sql`:
+
+| Column | Type | Notes |
 |---|---|---|
-| `id` | `string` | `${sessionId}-${order}` |
-| `order` | `number` | Assigned sequentially per session (not the raw "#") |
-| `type` | `"item" \| "break"` | Row classification above |
-| `title` | `string` | `Description` column; split on the first `\|` into `kicker` + `title` when present (e.g. `"Shāstriji Mahārāj \| Prabhāv..."` → kicker "Shāstriji Mahārāj", title "Prabhāv..."). Falls back to a cleaned `Item` code when Description is empty or a "See Notes…" placeholder. |
-| `kicker` | `string \| null` | See above — the theme/topic prefix, shown as a small line above the title |
-| `itemCode` | `string \| null` | Raw `Item` column (e.g. `"Skit-1.2"`) — internal reference only, never shown on a TV |
-| `presenter` | `string \| null` | `Presenter` column |
-| `sectionLabel` | `string \| null` | Nearest preceding section/day divider, used to group the operator's list |
-| `scheduledStart` / `scheduledEnd` | `string \| null` | `Start Time`/`End Time` columns (Excel time fractions) formatted as `"5:00 PM"` — informational only, the operator's Next/Previous is what actually drives the show |
-| `durationMinutes` | `number` | `Duration (Min)` column, or `End - Start` if that's blank; drives the live countdown |
-| `audio` | `{ mic, track }` | "Mics (wireless/stage/podium)" and "Audio" sub-columns, `Y`/`-` → boolean |
-| `video` | `{ sidescreen, backdrop, pptSide }` | "Sidescreens" (`Y`/`Live Feed`/`-`), "Backdrop", "Side" (PPT) columns |
-| `lights` | `{ hall, stage }` | "Hall Lights" / "Stage/Speaker Lights" — kept as their raw label (`ON`, `OFF`, `Dim`, `Podium`, `Stage Lights`, …) since this column isn't a clean boolean in the source |
-| `curtains` | `"open" \| "closed" \| null` | "Curtains" column (Friday only) |
-| `stageNotes` | `string \| null` | "Stage Left + Right Notes" column — empty in every row of this file, but the field exists so future cue sheets that populate it show up automatically on the Green Room's Entrance line |
-| `team` | `string \| null` | "Team Involvement" column |
-| `notes` | `string \| null` | "Notes" column — the operator can add to/override this live without touching the source file (see `LiveState.notesOverrides`) |
+| `id` | `uuid` | Primary key |
+| `sort_order` | `int` | Sequence position — separate from `id` so reordering never touches primary keys |
+| `session_id` | `text` | FK → `sessions.id` |
+| `section_label` | `text \| null` | Day/Section grouping header for the rundown list |
+| `type` | `"item" \| "break"` | |
+| `name` | `text` | Item/program name |
+| `description` | `text \| null` | |
+| `presenter` | `text \| null` | |
+| `presenter_requirement` | `text \| null` | |
+| `presenter_contact` | `text \| null` | Phone/walkie — lets Green Room page a late presenter |
+| `duration` | `int` | Minutes |
+| `start_time` / `end_time` | `text \| null` | Pre-formatted display strings (`"5:00 PM"`), not timestamps — informational only |
+| `audio_mics` / `audio_track` | `boolean` | |
+| `video_sidescreen` | `"none" \| "slides" \| "live_feed"` | |
+| `backdrop` | `boolean` | |
+| `video_ppt_needed` | `boolean` | AV crew's "does this item need PPT shown at all" flag — unrelated to any presenter-facing slide rendering (out of scope, see the restructure plan) |
+| `hall_lights` / `stage_lights` | `text \| null` | |
+| `camera_angle` | `text \| null` | Live-feed camera angle, shown on the AV display |
+| `props` | `text \| null` | Left/right placement, shown on the Green Room props panel |
+| `curtains` | `"open" \| "closed" \| null` | |
+| `remarks` | `text \| null` | Operator-editable notes |
+| `status` | `"confirmed" \| "draft" \| "cut" \| "tbd"` | Lets an item be staged without going live |
+| `color_tag` | `text \| null` | Visual flag for critical cues on the operator's rundown list |
+| `created_at` / `updated_at` / `updated_by` | | Audit trail |
 
-## Session
+## `sessions` table
 
-`{ id, sheetName, eventName, dayLabel, sessionLabel, items: Program[] }` —
-`dayLabel`/`sessionLabel` come from the sheet's own title cell (e.g.
-`"Saturday | Morning Session 1 & 2"`).
+`id, sheet_name, event_name, day_label, session_label, sort_order`.
+
+## App-shape mapping
+
+Components never read Supabase rows directly — `lib/data/sessions.ts`'s
+`mapProgramRow()`/`fetchSessions()` map DB rows into the `Program`/`Session`
+shapes in `lib/types.ts`, which every component actually consumes via
+`useSessions()`/`getSessionById()`. A few `Program` fields (`kicker`,
+`itemCode`, `team`) predate the current schema and have no DB column
+anymore — they're kept on the type as legacy-nullable rather than ripped
+out, since removing them would also mean touching every display that
+still reads them.
 
 ## Live state (mutable, synced across displays)
 
-Session/Program data above is static reference data generated at build time.
-What actually changes during the event lives in `LiveState`
-(`lib/types.ts`), kept small on purpose so it's cheap to sync:
-
 ```ts
 {
-  activeSessionId: string;              // which of the 6 sessions is live
+  activeSessionId: string;              // which session is live
   progressBySession: Record<string, {   // remembers where each session left off
     currentOrder: number | null;
     startedAt: string | null;
@@ -75,6 +98,11 @@ What actually changes during the event lives in `LiveState`
 }
 ```
 
+Backed by the `live_state` singleton row (`supabase/schema.sql`) — a
+`presenter_state jsonb` column also exists on that row for the Display
+Engine's Presenter-facing comment/flash channel, distinct from the
+audience-facing `alert` above.
+
 `getLive` / `getNext` / `getOnDeck` (in `lib/types.ts`) derive the three
 displayed items from a `Session` + the active `SessionProgress` — no
-component ever reaches into raw JSON directly.
+component ever reaches into raw rows directly.

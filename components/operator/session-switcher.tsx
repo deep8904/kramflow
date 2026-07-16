@@ -1,11 +1,12 @@
 "use client";
 
-import { sessions } from "@/lib/cuesheet";
+import { useSessions } from "@/lib/use-sessions";
 import { useEventStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export function SessionSwitcher() {
   const { state, selectSession } = useEventStore();
+  const sessions = useSessions();
 
   return (
     <div className="flex gap-1.5 overflow-x-auto pb-1">

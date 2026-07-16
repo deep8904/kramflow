@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Smartphone, Tv } from "lucide-react";
+import { Lock, Smartphone, Tv, FileSpreadsheet } from "lucide-react";
 import { useEventStore } from "@/lib/store";
-import { getSessionById } from "@/lib/cuesheet";
+import { useSessions } from "@/lib/use-sessions";
+import { getSessionById } from "@/lib/data/sessions";
 import { useAuth } from "@/components/auth/auth-context";
 import { ProgramList } from "@/components/operator/program-list";
 import { SessionSwitcher } from "@/components/operator/session-switcher";
@@ -16,7 +17,8 @@ import { Button } from "@/components/ui/button";
 export default function OperatorPage() {
   const { state } = useEventStore();
   const { lock } = useAuth();
-  const session = getSessionById(state.activeSessionId);
+  const sessions = useSessions();
+  const session = getSessionById(sessions, state.activeSessionId);
   const progress = state.progressBySession[state.activeSessionId];
 
   return (
@@ -40,6 +42,12 @@ export default function OperatorPage() {
         </div>
 
         <div className="flex items-center flex-wrap gap-2 shrink-0">
+          <Link href="/operator/cue-sheet">
+            <Button variant="secondary" size="sm">
+              <FileSpreadsheet className="h-4 w-4" strokeWidth={2} />
+              Cue Sheet
+            </Button>
+          </Link>
           <Link href="/green-room" target="_blank">
             <Button variant="secondary" size="sm">
               <Tv className="h-4 w-4" strokeWidth={2} />

@@ -19,6 +19,11 @@ generic importer. See `docs/DATA_MODEL.md`.
 - [x] TV Safe Area
 - [x] Dark Mode Only
 
-Explicitly out of scope for this version: authentication, multi-event
-support, multiple Excel formats, a database import pipeline, admin
-management, permissions.
+Explicitly out of scope for this version: multi-event support, permissions
+beyond the single operator PIN.
+
+Since the MVP shipped, authentication (PIN gate, hardened with a signed
+server-side cookie), a database import pipeline (Supabase, replacing the
+build-time JSON), and basic admin management (Excel re-upload + ad-hoc
+item form at `/operator/cue-sheet`) have all landed — see
+`docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, and `docs/ROADMAP.md`.

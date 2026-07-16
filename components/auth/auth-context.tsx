@@ -46,6 +46,9 @@ function lock() {
   window.sessionStorage.removeItem(SESSION_KEY);
   cachedStatus = "locked";
   notify();
+  // Revoke the server-verifiable cookie too (lib/server/require-auth.ts) —
+  // fire-and-forget, the UI has already locked regardless of the result.
+  fetch("/api/auth", { method: "DELETE" }).catch(() => {});
 }
 
 interface AuthContextValue {

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useEventStore } from "@/lib/store";
-import { getSessionById } from "@/lib/cuesheet";
+import { useSessions } from "@/lib/use-sessions";
+import { getSessionById } from "@/lib/data/sessions";
 import { getLive, getNext } from "@/lib/types";
 import { useDisplayEngine } from "@/lib/display-engine/store";
 import { useDisplayClock, formatClock } from "@/lib/display-engine/use-display-timer";
@@ -39,7 +40,8 @@ function parseTimeToday(label: string, nowMs: number): number | null {
 }
 export default function LobbyDisplayPage() {
   const { state: appState } = useEventStore();
-  const session = getSessionById(appState.activeSessionId);
+  const sessions = useSessions();
+  const session = getSessionById(sessions, appState.activeSessionId);
   const { state: engine } = useDisplayEngine();
 
   const { offsetMs } = useTimeSync();
