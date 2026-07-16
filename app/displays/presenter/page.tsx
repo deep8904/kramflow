@@ -208,11 +208,26 @@ export default function PresenterDisplayPage() {
         </>
       )}
 
-      {/* Auto-hiding control bar — the presenter never sees this at rest */}
+      {/* Auto-hiding control bar — the presenter never sees this at rest.
+          Deliberately NOT pointer-events-none while faded: a click/tap that
+          lands in this zone right as the idle-hide kicks in (or a touch tap
+          that fires its click before the mousemove/touchstart reveal state
+          has re-rendered) would otherwise land on a non-interactive element
+          and silently do nothing — no error, control just doesn't respond.
+          Nothing else occupies this screen region, so leaving it clickable
+          while invisible costs nothing. */}
+      {/* z-45: above HoldScreen (z-40) so the presenter can still reach the
+          Hold toggle to release it — Presenter is the only display where a
+          human locally controls Hold, so this is the one place the control
+          bar needs to survive its own takeover screen. Still below
+          emergency broadcasts (z-50), which are meant to interrupt even
+          Hold. The other four Display Engine surfaces never render this
+          control bar at all, so Hold there stays exclusively
+          operator-controlled, as intended. */}
       <div
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-30 flex items-center justify-center gap-3 p-6 transition-opacity duration-300",
-          controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+          "fixed bottom-0 left-0 right-0 z-[45] flex items-center justify-center gap-3 p-6 transition-opacity duration-300",
+          controlsVisible ? "opacity-100" : "opacity-0"
         )}
       >
         <div className="flex items-center gap-2 rounded-full bg-card/95 backdrop-blur px-4 py-3 shadow-lg">

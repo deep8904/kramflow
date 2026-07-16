@@ -38,7 +38,7 @@ export default function AvPage() {
 
   return (
     <TvLayout>
-      <div className="flex-1 grid grid-cols-[1fr_auto] gap-24 min-h-0">
+      <div className="flex-1 grid grid-cols-[minmax(0,1fr)_420px] gap-24 min-h-0">
         <TvStack>
           <TvSection>
             <LiveNow
@@ -59,8 +59,8 @@ export default function AvPage() {
         </TvStack>
 
         {prepTarget && (
-          <div className="w-[420px] shrink-0 self-start pt-1">
-            <SectionLabel>Requirements — {prepTarget.title}</SectionLabel>
+          <div className="min-w-0 shrink-0 self-start pt-1">
+            <SectionLabel className="break-words">Requirements — {prepTarget.title}</SectionLabel>
             <div className="mt-4 divide-y divide-white/5">
               <RequirementRow label="Audio Needed" value={prepTarget.audio.track ? "Yes" : "No"} />
               <RequirementRow label="Video Needed" value={prepTarget.video.sidescreen !== "none" ? "Yes" : "No"} />

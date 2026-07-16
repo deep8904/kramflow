@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Plus, Upload, Pencil, Trash2 } from "lucide-react";
 import { useSessions } from "@/lib/use-sessions";
@@ -63,6 +63,19 @@ export default function CueSheetPage() {
       setLoadingRows(false);
     }
   }
+
+  // The first session tab renders as selected by default (activeSessionId
+  // falls back to sessions[0]) but rows were only ever fetched from a tab's
+  // onClick — so the pre-selected default never loaded its items until the
+  // user clicked a tab (even the same one). Load once sessions arrive.
+  useEffect(() => {
+    // Standard fetch-on-mount pattern, not the derived-state anti-pattern
+    // this rule targets — loadRows' setLoadingRows(true) is a side effect
+    // of kicking off the fetch, not a synchronous state derivation.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (activeSessionId && rows === null) loadRows(activeSessionId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSessionId]);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this item?")) return;

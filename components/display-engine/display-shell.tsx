@@ -24,7 +24,17 @@ export function DisplayShell({
 
   return (
     <main className={cn("h-screen w-screen overflow-hidden bg-background flex flex-col", className)}>
-      <div className="flex-1 flex flex-col justify-between" style={{ padding: "clamp(48px, 4vw, 64px)" }}>
+      {/* min-h-0 is required here, not decorative: without it this flex
+          item's default min-height:auto refuses to shrink below its
+          content's natural height, so any unconstrained-length child (e.g.
+          Volunteer/AV's full un-limited SessionTimeline) balloons this
+          div's height instead of scrolling internally, and the overflow
+          gets silently clipped by <main>'s overflow-hidden — content exists
+          in the DOM, just rendered thousands of px below the visible
+          viewport. Lobby's SessionTimeline happens to pass limit={8}, which
+          kept it short enough to not visibly hit this; Green Room doesn't
+          use SessionTimeline at all — both masked the same underlying bug. */}
+      <div className="flex-1 min-h-0 flex flex-col justify-between" style={{ padding: "clamp(48px, 4vw, 64px)" }}>
         {children}
       </div>
     </main>
