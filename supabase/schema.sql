@@ -84,6 +84,75 @@ create table if not exists activity_log (
 create index if not exists activity_log_created_at_idx on activity_log(created_at desc);
 
 -- ---------------------------------------------------------------------------
+-- display_state — singleton row for the Display Engine's own live state
+-- (Hold, Timer, Speaker Ready). Same "keep it small" reasoning as
+-- live_state. Previously synced via BroadcastChannel/WebSocket only
+-- (same-browser or requiring a separately-deployed relay); moved here so
+-- it syncs across real devices the same reliable way live_state does. See
+-- docs/DISPLAY_ENGINE.md.
+-- ---------------------------------------------------------------------------
+create table if not exists display_state (
+  id smallint primary key default 1 check (id = 1),
+  hold jsonb not null default '{"active":false,"message":"Please Stand By","subMessage":null,"continueClock":false,"activatedAt":null}'::jsonb,
+  timer jsonb not null default '{"mode":"program","source":"auto","startedAt":null,"durationSeconds":300,"pausedAt":null,"adjustmentSeconds":0,"thresholds":{"yellowAt":300,"orangeAt":60,"redAt":0,"criticalAfter":60}}'::jsonb,
+  speaker_ready jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+insert into display_state (id) values (1) on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- display_registry — one row per connected display (Presenter/AV/Green
+-- Room/General instances, could be several of the same type across
+-- different rooms/devices). Self-registers + heartbeats every 15s
+-- (lib/display-engine/use-register-display.ts). Display Manager reads
+-- this to show connection status/latency and issue remote commands via
+-- pending_command.
+-- ---------------------------------------------------------------------------
+create table if not exists display_registry (
+  id text primary key,
+  name text not null,
+  type text not null,
+  room text,
+  profile_id text,
+  latency_ms integer,
+  registered_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  pending_command jsonb
+);
+
+-- ---------------------------------------------------------------------------
+-- display_broadcasts — Broadcast Center messages. `status`/`dismissed_for`
+-- reconstruct the app's active/scheduled/history views client-side from
+-- one table rather than three separate arrays:
+--   active    = status='sent' and dismissed_at is null and not expired
+--   scheduled = status='scheduled'
+--   history   = every status='sent' row, regardless of dismissed_at
+--     (dismissing removes a message from "active" everywhere, same as the
+--     original store — it does not remove it from history)
+-- ---------------------------------------------------------------------------
+create table if not exists display_broadcasts (
+  id uuid primary key default gen_random_uuid(),
+  type text not null,
+  title text not null,
+  message text not null,
+  icon text,
+  priority smallint not null default 2,
+  target jsonb not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz,
+  duration_seconds integer,
+  acknowledgement_required boolean not null default false,
+  persistent boolean not null default false,
+  acknowledged_by jsonb not null default '[]'::jsonb,
+  scheduled_for timestamptz,
+  status text not null default 'sent' check (status in ('scheduled', 'sent')),
+  dismissed_at timestamptz
+);
+
+create index if not exists display_broadcasts_status_idx on display_broadcasts(status);
+
+-- ---------------------------------------------------------------------------
 -- Row-Level Security
 -- Public (anon) reads only. All writes go through Next.js API routes using
 -- the service_role key, which bypasses RLS entirely — no write policies are
@@ -93,6 +162,9 @@ alter table sessions enable row level security;
 alter table programs enable row level security;
 alter table live_state enable row level security;
 alter table activity_log enable row level security;
+alter table display_state enable row level security;
+alter table display_registry enable row level security;
+alter table display_broadcasts enable row level security;
 
 drop policy if exists "public read sessions" on sessions;
 create policy "public read sessions" on sessions for select using (true);
@@ -106,9 +178,33 @@ create policy "public read live_state" on live_state for select using (true);
 drop policy if exists "public read activity_log" on activity_log;
 create policy "public read activity_log" on activity_log for select using (true);
 
+drop policy if exists "public read display_state" on display_state;
+create policy "public read display_state" on display_state for select using (true);
+
+drop policy if exists "public read display_registry" on display_registry;
+create policy "public read display_registry" on display_registry for select using (true);
+
+drop policy if exists "public read display_broadcasts" on display_broadcasts;
+create policy "public read display_broadcasts" on display_broadcasts for select using (true);
+
 -- ---------------------------------------------------------------------------
 -- Realtime — enable change broadcasts for the tables clients subscribe to.
+-- `ALTER PUBLICATION ... ADD TABLE` has no `IF NOT EXISTS` form and errors
+-- ("already member of publication") on a re-run, unlike every other
+-- statement in this file — wrapped in a loop that checks first so the
+-- whole file stays genuinely idempotent.
 -- ---------------------------------------------------------------------------
-alter publication supabase_realtime add table sessions;
-alter publication supabase_realtime add table programs;
-alter publication supabase_realtime add table live_state;
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['sessions', 'programs', 'live_state', 'display_state', 'display_registry', 'display_broadcasts']
+  loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table %I', t);
+    end if;
+  end loop;
+end $$;

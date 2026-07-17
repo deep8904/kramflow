@@ -1,35 +1,52 @@
 # KramFlow Display Engine
 
-A centralized real-time display subsystem, built additively on `feature/kramflow-display-engine` without modifying the existing StageFlow-era app. It is the foundation for the Presenter Confidence Monitor, Green Room / AV / Lobby / Volunteer displays, and any future display type.
-
-Everything here is off by default — see [Feature flag](#feature-flag).
+A centralized real-time display subsystem covering the Presenter Confidence
+Monitor, and the Green Room / AV / General displays. Originally built as an
+additive, flag-gated preview subsystem alongside the pre-existing app; since
+consolidated into the canonical implementation of those surfaces — see
+"History" below.
 
 ## Design intent
 
-Long-distance readability, huge typography, a single confidence-monitor mental model applied consistently across display types — inspired by the *usability principles* of tools like StageTimer (countdown/count-up, overtime awareness, fullscreen, distraction-free), not their interface. Nothing here reuses StageTimer's layout, colors, or branding; it follows KramFlow's own design tokens (`app/globals.css`) and the same "one accent color, no gradients, no decorative motion" discipline as the rest of the app, with one documented exception (see [Timer colors](#timer-colors)).
+Long-distance readability, huge typography, a single confidence-monitor
+mental model applied consistently across display types — inspired by the
+*usability principles* of tools like StageTimer (countdown/count-up,
+overtime awareness, fullscreen, distraction-free), not their interface.
+Nothing here reuses StageTimer's layout, colors, or branding; it follows
+KramFlow's own design tokens (`app/globals.css`) and the same "one accent
+color, no gradients, no decorative motion" discipline as the rest of the
+app, with one documented exception (see [Timer colors](#timer-colors)).
 
-## Isolation from the existing app
+## History
 
-Nothing under `lib/display-engine/`, `components/display-engine/`, `app/displays/`, `app/(operator)/broadcast/`, `app/(operator)/display-manager/`, or `app/api/display-engine/` is imported by, or shares storage/state with, the pre-existing app. The only touched existing file is `app/page.tsx` (an additive, flag-gated launcher section). Confirm at any time with:
+This subsystem was originally built additively on a feature branch, kept
+behind a `NEXT_PUBLIC_DISPLAY_ENGINE_ENABLED` build flag, and synced its own
+state (registry, timer, Hold, Broadcasts, Speaker Ready) purely via
+`BroadcastChannel` (same-browser only) or an optional self-hosted WebSocket
+relay — built before Supabase existed in this project.
 
-```bash
-git diff main --stat -- . ':!app/page.tsx'   # should be empty
-```
+Two consolidation passes later:
 
-Program/session data is never duplicated — every display page reads the same `useEventStore()`, `getSessionById()`, `getLive()`/`getNext()`/`getOnDeck()` the existing Operator Dashboard uses. The engine only owns state with no existing equivalent: the display registry, groups, profiles, its own timer/hold state, broadcasts, and the `speakerReady` flag.
+1. **View consolidation** — the plain "original" AV and Green Room pages
+   were deleted in favor of these richer ones (they already had every field
+   the originals had, plus Hold/Broadcast/timer escalation/props/camera
+   angle). Volunteer Board was dropped (not a wanted surface; its one
+   distinguishing feature, `Program.team`, is dead data — always `null` in
+   `lib/data/sessions.ts`). Routes were renamed to clean top-level paths
+   (`/displays/av` → `/av`, etc. — see [Module map](#module-map)) and the
+   feature flag was removed; these are permanent canonical routes now, not
+   an experimental preview.
+2. **Transport migration** — Hold, Timer, Speaker Ready, the display
+   registry, and Broadcasts (active/scheduled/history) moved onto Supabase
+   Postgres + Realtime, the same backbone `lib/store.tsx` already used for
+   the core show data. This closed a real inconsistency: Next/Previous/
+   Alert/Notes always synced across real devices; Hold/Broadcast did not,
+   unless the separate WS relay was deployed. See
+   [Real-time transport](#real-time-transport).
 
-Storage keys are namespaced separately from the main app's `stageflow.live` / `stageflow-sync`:
-
-| Purpose | Key |
-|---|---|
-| Engine state (localStorage) | `kramflow.display-engine.v1` |
-| Per-tab client id (sessionStorage) | `kramflow.display-engine.client-id` |
-| BroadcastChannel name | `kramflow-display-engine` |
-| Fullscreen preference (localStorage) | `kramflow.display-engine.fullscreen-preference` |
-
-## Feature flag
-
-The launcher (`app/page.tsx`) only shows Display Engine tiles when `NEXT_PUBLIC_DISPLAY_ENGINE_ENABLED=1` at **build time** — the route itself (`/`) is statically prerendered, so the flag must be set before `next build`, not just before `next start`. The routes themselves (`/displays/*`, `/broadcast`, `/display-manager`) are always reachable directly by URL regardless of the flag; the flag only controls launcher visibility.
+Program/session/live-state data is still never duplicated — every display
+page reads the same `useEventStore()`, `useSessions()`,
+`getLive()`/`getNext()`/`getOnDeck()` the Operator Dashboard uses.
 
 ## Module map
 
@@ -37,7 +54,7 @@ The launcher (`app/page.tsx`) only shows Display Engine tiles when `NEXT_PUBLIC_
 lib/display-engine/
 ├── types.ts                 — all engine types; imports/re-exports AlertSeverity from @/lib/types rather than redefining
 ├── defaults.ts               — BUILT_IN_PROFILES, createInitialEngineState()
-├── transport.ts               — RealtimeTransport interface + BroadcastChannel/WebSocket implementations
+├── transport.ts               — RealtimeTransport interface + BroadcastChannel/WebSocket implementations (now used only for the local-only slice, see below)
 ├── store.tsx                 — useDisplayEngine(), useTransportStatus(), targetMatchesDisplay()
 ├── colors.ts                  — TIMER_COLORS / TIMER_COLOR_LABELS
 ├── use-time-sync.ts            — Cristian's-algorithm clock sync against /api/display-engine/time
@@ -48,45 +65,69 @@ lib/display-engine/
 └── use-idle-visibility.ts        — controls auto-hide/reveal on activity
 
 components/display-engine/
-├── display-shell.tsx        — full-viewport safe-area wrapper (not a reuse of components/tv/tv-layout.tsx)
+├── display-shell.tsx        — full-viewport safe-area wrapper (not a reuse of the deleted components/tv/tv-layout.tsx)
 ├── timer-ring.tsx            — SVG progress ring, Framer Motion (not styled-jsx — see Known constraints)
 ├── hold-screen.tsx            — full-screen Hold takeover
 ├── broadcast-overlay.tsx       — renders active broadcasts targeted at a display (banner or emergency takeover)
-├── session-timeline.tsx        — shared running-order list (Lobby/Volunteer/AV)
+├── session-timeline.tsx        — shared running-order list (General/AV)
 └── profile-editor.tsx          — Display Profiles CRUD, embedded in Display Manager
 
-app/displays/{presenter,green-room,av,lobby,volunteer}/page.tsx   — the five display surfaces
-app/(operator)/broadcast/page.tsx        — Broadcast Center (PIN-gated via the existing (operator) layout)
-app/(operator)/display-manager/page.tsx    — Display Manager (PIN-gated via the existing (operator) layout)
+app/{presenter,green-room,av,general}/page.tsx  — the 4 Display Engine display surfaces (Operator/Remote aren't Display Engine surfaces)
+app/(operator)/broadcast/page.tsx        — Broadcast Center (PIN-gated, linked from the Operator dashboard header)
+app/(operator)/display-manager/page.tsx    — Display Manager (PIN-gated, linked from the Operator dashboard header)
 app/api/display-engine/time/route.ts       — { serverTime } for clock sync
-scripts/display-engine-ws-server.mjs        — optional standalone WS relay, see below
+app/api/display-engine/registry/*          — display registration/heartbeat (public) + rename/assign/command/remove (PIN-gated)
+app/api/display-engine/hold/route.ts       — Hold activate/deactivate (public)
+app/api/display-engine/timer/route.ts      — every timer action (public)
+app/api/display-engine/speaker-ready/route.ts — Green Room's speaker-ready toggle (public)
+app/api/display-engine/broadcasts/*        — send/schedule (PIN-gated), dismiss/acknowledge/promote (public)
+scripts/display-engine-ws-server.mjs        — optional standalone WS relay; no longer needed for Hold/Broadcast/Timer/Registry (see below), still usable for the local-only slice if ever needed
 ```
 
-## Real-time transport
+## Real-time transport — two systems now, on purpose
 
-`RealtimeTransport` (`transport.ts`) is the single abstraction every hook/component talks to:
+- **Hold, Timer, Speaker Ready, the display registry, and Broadcasts
+  (active/scheduled/history)** sync via **Supabase Postgres + Realtime**
+  (`supabase/schema.sql`'s `display_state`, `display_registry`,
+  `display_broadcasts` tables), following the exact pattern
+  `lib/store.tsx`/`lib/use-sessions.ts` already established: reads are a
+  fetch + `postgres_changes` Realtime subscription
+  (`lib/display-engine/store.tsx`'s `fetchRemoteSlice()`/
+  `ensureRemoteTransportConnected()`), writes go through
+  `app/api/display-engine/*` routes using the service-role key. This is
+  genuinely cross-device now — a phone and a lobby TV in different rooms
+  see each other's Hold/Broadcast state without any extra infrastructure.
+- **Profiles, Groups, and Broadcast templates/favorites/drafts** — operator
+  UI configuration, not live show state — stay on `localStorage`, synced
+  same-browser-only via `BroadcastChannel` (`lib/display-engine/transport.ts`,
+  unchanged from before). Deliberately out of scope for the Supabase
+  migration; each operator's browser has its own. The optional WebSocket
+  relay (`scripts/display-engine-ws-server.mjs`) still exists and would
+  extend this local-only slice across devices if ever needed, but nothing
+  in this app requires it anymore.
 
-- **`BroadcastChannelTransport`** (default) — zero-config, same pattern already proven in `lib/store.tsx`. Syncs every tab in the *same browser*, which is why all the cross-tab testing in this doc works without any server. Does **not** sync across separate devices/browsers.
-- **`WebSocketTransport`** — a real client with reconnect/backoff (`500ms → 15s`) and message queueing while disconnected. Activated automatically when `NEXT_PUBLIC_DISPLAY_ENGINE_WS_URL` is set. This is the path for genuine cross-device sync (a phone and a lobby TV in different rooms).
+### Auth boundary
 
-### Optional WS relay server
-
-`scripts/display-engine-ws-server.mjs` is a minimal, **dependency-free** reference relay (no `ws` package — hand-rolled RFC 6455 handshake/framing over `node:http`, verified end-to-end with a real two-client handshake+broadcast test). Its entire contract: broadcast every message it receives to every *other* connected client, verbatim.
-
-```bash
-node scripts/display-engine-ws-server.mjs 8787
-# then, on every device you want synced:
-NEXT_PUBLIC_DISPLAY_ENGINE_WS_URL=wss://your-host:8787
-```
-
-Suitable for small-scale internal use on a trusted network — no auth, no built-in TLS (put it behind a reverse proxy for `wss://`).
+Hold/Timer/Speaker-Ready/Registry-heartbeat write endpoints are
+**intentionally public** (no PIN) — Presenter and Green Room are
+unauthenticated pages today (no PIN gate on `/presenter`, `/green-room`,
+`/av`, `/general`), so this matches the actual pre-existing risk level;
+the Supabase migration changed *how* this state syncs, not *who* can
+trigger it. Broadcast Center's send/schedule/cancel actions, and Display
+Manager's rename/assign/command/remove actions, **are** PIN-gated
+(`lib/server/require-auth.ts`) since those pages sit inside the
+`(operator)` route group. Dismiss/acknowledge/promote-a-scheduled-broadcast
+stay public too — `components/display-engine/broadcast-overlay.tsx`,
+rendered on every public display, calls dismiss/acknowledge directly, and
+the scheduled-broadcast poller runs in whichever tab happens to have the
+store loaded, not just an authenticated one.
 
 ## Timer engine
 
 `useDisplayTimer()` drives every timer-bearing display from one of two sources, selected by `engine.timer.source`:
 
 - **Auto** — reads the *existing* app's live program (`durationMinutes`, `progress.startedAt`, `LiveState.pausedAt`). This is what "auto-follows the Operator Dashboard" means concretely: no separate program state, just the same numbers every other display already reads.
-- **Manual** — the engine's own independent `TimerState`, driven by the Presenter Display's controls (start/pause/resume/reset/±30s/±1min), using the identical shift-on-resume model as the main app's own Hold (`pausedAt` shifts `startedAt` forward by the paused duration on resume, so every display's countdown stays in lockstep).
+- **Manual** — the engine's own independent `TimerState` (now the `timer` column of the `display_state` singleton row), driven by the Presenter Display's controls (start/pause/resume/reset/±30s/±1min), using the identical shift-on-resume model as the main app's own Hold (`pausedAt` shifts `startedAt` forward by the paused duration on resume — computed server-side now in `app/api/display-engine/timer/route.ts`'s `resume` case).
 
 ### Timer colors
 
@@ -98,7 +139,7 @@ The existing data model tracks *per-item* `startedAt` (`SessionProgress.startedA
 
 ## Hold Mode
 
-`HoldState` (`activateHold`/`deactivateHold`) is a full-screen takeover (`HoldScreen`), independent of the timer, with five presets (`HOLD_PRESETS`) and an optional `continueClock` flag. Rendered above `BroadcastOverlay`'s banners (z-40 vs z-30) but below emergency broadcasts (z-50) — an active emergency is meant to interrupt even a Hold screen.
+`HoldState` (`activateHold`/`deactivateHold`, now backed by `app/api/display-engine/hold/route.ts` and the `display_state.hold` column) is a full-screen takeover (`HoldScreen`), independent of the timer, with five presets (`HOLD_PRESETS`) and an optional `continueClock` flag. Rendered above `BroadcastOverlay`'s banners (z-40 vs z-30) but below emergency broadcasts (z-50) — an active emergency is meant to interrupt even a Hold screen. The Presenter page's own control bar sits at `z-[45]`, above the Hold overlay, specifically so a real click can still release Hold once it's active — see the "4 real bugs" fix in git history for why this matters (the overlay used to fully occlude the only Hold toggle).
 
 ## Broadcast Center
 
@@ -106,42 +147,38 @@ The existing data model tracks *per-item* `startedAt` (`SessionProgress.startedA
 
 **Banners are rendered on an opaque `bg-card/95` + blur surface, not a translucent tint** — an earlier version used `bg-status-*/15`, which let page content (e.g. the Presenter Display's own footer) bleed through and visually collide with banner text in Program/Session mode. Caught during end-to-end browser testing; fixed by giving the banner container a solid backdrop and moving the type's accent color to just the icon chip.
 
-### Scheduled broadcasts — known limitation
+### Scheduled broadcasts — known limitation (carried forward, not solved by the Supabase migration)
 
-`scheduleBroadcast(draft, scheduledFor)` stores a broadcast with a future `scheduledFor` timestamp. A lightweight in-store scheduler (`ensureSchedulerRunning()`, polling every 5s) promotes due broadcasts to `active` — but it runs inside whichever browser tab happens to have the Display Engine loaded, not on a server. **There is no server-side cron in this environment.** A scheduled broadcast only fires once some open tab (a display, the Broadcast Center, etc.) notices it's due. For a fully server-guaranteed schedule, this would need to move into the optional WS relay or a real backend job — out of scope here.
+A scheduled broadcast (`display_broadcasts` row with `status = 'scheduled'`) is promoted to `status = 'sent'` by `app/api/display-engine/broadcasts/[id]/promote/route.ts`, called by a lightweight in-store scheduler (`ensureSchedulerRunning()`, polling every 5s) that runs inside whichever browser tab happens to have the Display Engine loaded. **There is still no server-side cron in this environment.** Moving the state to Supabase made the *result* of promotion genuinely cross-device (every display sees the promoted broadcast via Realtime), but the *trigger* is still "some open tab happened to notice" — a real fix would need Supabase `pg_cron` or a Vercel Cron Job calling the promote route on a schedule.
 
-Recurrence (from the original spec's "schedule/recurrence") was **not implemented** — only one-shot future sends. A recurring broadcast would need its own rule model (RRULE-style) and is a reasonable follow-up, not attempted here to avoid scope creep on an already-large subsystem.
+Recurrence (from the original spec's "schedule/recurrence") was **not implemented** — only one-shot future sends.
 
 ## Display Registry, Manager, and Profiles
 
-Every display page calls `useRegisterDisplay(name, type, room, onCommand)` once: registers itself, heartbeats every 15s with a latency sample, and applies+clears any `pendingCommand` the Display Manager issues (`test-message`, `force-fullscreen`, `reload`). A display is considered `offline` after 45s without a heartbeat (`OFFLINE_AFTER_MS`).
+Every display page calls `useRegisterDisplay(name, type, room, onCommand)` once: registers itself (now via `POST /api/display-engine/registry`, public), heartbeats every 15s with a latency sample, and applies+clears any `pendingCommand` the Display Manager issues (`test-message`, `force-fullscreen`, `reload`, delivered via `PATCH /api/display-engine/registry/[id]`, PIN-gated). A display is considered `offline` after 45s without a heartbeat (`OFFLINE_AFTER_MS`).
 
-**Display Manager** (`/display-manager`, PIN-gated) lists every registered display with live status/latency, inline rename/type/room/profile assignment, and per-display actions:
+**Display Manager** (`/display-manager`, PIN-gated) lists every registered display with live status/latency — genuinely cross-device now, since the registry lives in `display_registry` rather than same-browser `localStorage` — with inline rename/type/room/profile assignment, and per-display actions:
 - **Preview** — a real, live `<iframe>` of the display's actual route (same synced state, genuinely live).
-- **Screenshot** — uses the browser's native `getDisplayMedia()` picker (the operator selects the window/screen to capture) and downloads a PNG. This is the honest capability boundary: a *silent, remote* pixel-capture of another device's screen isn't achievable from a pure client-side multi-tab app without a server-side headless-browser service, which is out of scope here.
-- **Force Fullscreen / Test Message / Reload** — delivered via `sendCommand()` → the target's `pendingCommand`, verified end-to-end in browser testing (Display Manager → shared state → target tab receives, applies, and clears the command).
+- **Screenshot** — uses the browser's native `getDisplayMedia()` picker (the operator selects the window/screen to capture) and downloads a PNG. Unaffected by the transport migration — pure browser API.
+- **Force Fullscreen / Test Message / Reload** — delivered via `sendCommand()` → the target's `pending_command` column, read back via Realtime.
 
-**Display Profiles** (`profile-editor.tsx`, embedded in Display Manager) are full CRUD on top of `BUILT_IN_PROFILES` — built-in profiles (Presenter/Minimal/AV/Lobby/Green Room/Volunteer) are read-only; operators can create/edit/delete their own, then assign them to a display from the same list.
+**Display Profiles** (`profile-editor.tsx`, embedded in Display Manager) are full CRUD on top of `BUILT_IN_PROFILES` (Presenter/Minimal/AV/General/Green Room) — **stay local-only**, same as Groups. Built-in profiles are read-only; operators can create/edit/delete their own, then assign them to a display from the same list.
 
 ## Speaker Ready — new, narrowly-scoped state
 
-The Green Room Display's "speaker ready" indicator has no equivalent in the existing `Program`/`LiveState` model — it's genuinely new information (has the next speaker checked in?), not derivable from anything already tracked. Added as a minimal `speakerReady: Record<programId, boolean>` map on `DisplayEngineState` with a single `setSpeakerReady()` action, rather than bolting it onto the frozen `Program` type.
+The Green Room Display's "speaker ready" indicator has no equivalent in the existing `Program`/`LiveState` model — it's genuinely new information (has the next speaker checked in?), not derivable from anything already tracked. Lives in `display_state.speaker_ready` (a `Record<programId, boolean>` jsonb map), written via `PATCH /api/display-engine/speaker-ready` (public — Green Room's toggle is unauthenticated).
 
-## Volunteer Display — pragmatic scoping
-
-The spec's "current/next assignment" implies per-volunteer task assignment, which doesn't exist anywhere in the cue-sheet data model (`Program` has no volunteer-roster concept). Rather than invent a parallel scheduling subsystem, the Volunteer Display reuses the *already-collected* `Program.team` field ("AV Team", "Sabha Team", "Kirtan Team", etc.) to show which team is responsible for the current/next/upcoming items — genuinely useful, built entirely from real data, without fabricating a feature the data can't support.
-
-## Lobby Display — pragmatic scoping
+## General Display — pragmatic scoping
 
 "Sponsor Slides" and "Directional Information" are scoped down to a static text section rather than a full slide/asset-management CMS, which would be a project of its own. "Countdown to Next Event" and "Daily Schedule" are real and live.
 
 ### `scheduledStart` is a display string, not a timestamp — a real bug found and fixed
 
-`Program.scheduledStart` (from the cue sheet) is a pre-formatted string like `"5:00 PM"` — the existing app has only ever rendered it as plain text (`components/operator/program-list.tsx`). Three places in this subsystem initially called `new Date(scheduledStart)` / `Date.parse(scheduledStart)` on it, which is not a parseable format and silently produced `Invalid Date` (`session-timeline.tsx`, the Green Room "expected start" label, and the Lobby countdown). Caught during end-to-end browser testing. Fixed by:
+`Program.scheduledStart` (from the cue sheet) is a pre-formatted string like `"5:00 PM"` — the existing app has only ever rendered it as plain text (`components/operator/program-list.tsx`). Three places in this subsystem initially called `new Date(scheduledStart)` / `Date.parse(scheduledStart)` on it, which is not a parseable format and silently produced `Invalid Date` (`session-timeline.tsx`, the Green Room "expected start" label, and the General display's countdown). Caught during end-to-end browser testing. Fixed by:
 - Rendering the field as plain text everywhere except the one place a real countdown is required.
-- Adding a narrow `parseTimeToday()` helper (Lobby page only) that parses the actual `"H:MM AM/PM"` format against *today's* date — a safe assumption for a display that only ever runs on the actual event day, same assumption the rest of the live-event tooling already makes.
+- Adding a narrow `parseTimeToday()` helper (General display page only) that parses the actual `"H:MM AM/PM"` format against *today's* date — a safe assumption for a display that only ever runs on the actual event day, same assumption the rest of the live-event tooling already makes.
 
-## A second real bug found in testing: stale `clientId` race
+## A real bug found in testing: stale `clientId` race
 
 `useDisplayEngine()`'s `clientId` was a module-level variable only corrected (from the SSR `"server"` fallback to the real per-tab id) inside `ensureTransportConnected()`, which runs post-commit via `useSyncExternalStore`'s `subscribe()`. A fast-firing effect (`useRegisterDisplay`'s registration effect) could run before that correction landed, registering a bogus `"server"` entry in the shared display registry. Fixed by resolving `clientId` eagerly at module init (`typeof window !== "undefined" ? readClientId() : "server"`) instead of waiting for `subscribe()` — verified fixed by clearing state and re-registering, confirming exactly one clean entry.
 
@@ -151,9 +188,9 @@ The spec's "current/next assignment" implies per-volunteer task assignment, whic
 
 ## Session persistence & reconnection
 
-All engine state lives in `localStorage` (`kramflow.display-engine.v1`) and rehydrates on load; `useRegisterDisplay` re-registers and resyncs the clock on every mount, so a refreshed display picks up exactly where the shared state left off (current mode, hold state, active broadcasts, timer). `useFullscreen()` remembers the fullscreen preference across reloads (browsers only allow *entering* fullscreen from a real user gesture, so a refreshed display can't silently re-enter it, but the preference is available for an operator to act on).
+Hold/Timer/Speaker-Ready/Registry/Broadcasts rehydrate from Supabase on load (a fetch, then Realtime keeps them current) — a refreshed display picks up exactly where the shared state left off regardless of which device refreshed. The local-only slice (Profiles/Groups/templates/favorites/drafts) still rehydrates from `localStorage` as before. `useFullscreen()` remembers the fullscreen preference across reloads (browsers only allow *entering* fullscreen from a real user gesture, so a refreshed display can't silently re-enter it, but the preference is available for an operator to act on).
 
 ## Known constraints
 
-- **Framer Motion over `styled-jsx`** — `AGENTS.md` warns this Next.js version has unverified/changed APIs; the TimerRing's blink and the HoldScreen's fade both use Framer Motion (already a project dependency) rather than risk `styled-jsx`. One early draft of the Broadcast Center did use `<style jsx global>` for form-input styling — caught in review and replaced with plain Tailwind classes before merge.
-- **No new runtime dependencies** — the WS relay is hand-rolled specifically to avoid adding `ws` to `package.json` for what is optional, non-production-required infrastructure.
+- **Framer Motion over `styled-jsx`** — `AGENTS.md` warns this Next.js version has unverified/changed APIs; the TimerRing's blink and the HoldScreen's fade both use Framer Motion (already a project dependency) rather than risk `styled-jsx`.
+- **No new runtime dependencies** — the WS relay is hand-rolled specifically to avoid adding `ws` to `package.json` for what is now genuinely optional infrastructure (only relevant to the local-only Profiles/Groups slice, if ever needed cross-device).

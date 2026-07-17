@@ -17,31 +17,32 @@
 
 ```text
 app/
-├── (display)/
-│   ├── green-room/page.tsx     — performer-facing TV, full-bleed, no controls, public
-│   └── av/page.tsx             — AV crew-facing TV, full-bleed, no controls, public
-├── displays/                   — Display Engine surfaces (see docs/DISPLAY_ENGINE.md),
-│   ├── presenter/               distinct from (display)/ above, not a replacement
-│   ├── green-room/
-│   ├── av/
-│   ├── lobby/
-│   └── volunteer/
+├── av/page.tsx                 — technical TV display, public, no PIN
+├── green-room/page.tsx         — performer TV display, public, no PIN
+├── general/page.tsx            — generic public display (no dept-specific info)
+├── presenter/page.tsx          — confidence monitor, public, no PIN
 ├── (operator)/
 │   ├── layout.tsx              — wraps every route below in the PIN gate
 │   ├── operator/page.tsx       — desktop control room, 3-column, full width
 │   ├── operator/cue-sheet/     — Excel upload + ad-hoc item form + edit/delete
 │   ├── remote/page.tsx         — one-handed mobile remote, not a resized dashboard
-│   ├── broadcast/page.tsx      — Display Engine Broadcast Center
-│   └── display-manager/page.tsx — Display Engine Display Manager
+│   ├── broadcast/page.tsx      — Broadcast Center, linked from the Operator header
+│   └── display-manager/page.tsx — Display Manager, linked from the Operator header
 ├── api/
 │   ├── auth/route.ts           — PIN check, sets the signed session cookie (see Authentication)
 │   ├── live/route.ts           — every live-state mutation (Next/Previous/Hold/Alert/…)
 │   ├── sessions/route.ts       — session list/create
 │   ├── programs/route.ts       — program list/create
 │   ├── programs/[id]/route.ts  — program update/delete
-│   └── cue-sheet/upload/route.ts — Excel upload, dry-run preview + commit
+│   ├── cue-sheet/upload/route.ts — Excel upload, dry-run preview + commit
+│   └── display-engine/*        — registry/hold/timer/speaker-ready/broadcasts (see docs/DISPLAY_ENGINE.md)
 └── layout.tsx
 ```
+
+Exactly 6 canonical screens: Operator, Remote, AV, Green Room, General,
+Presenter — see `docs/DISPLAY_ENGINE.md`'s "History" section for how this
+consolidated down from two generations of AV/Green Room plus a Volunteer
+Board that was dropped.
 
 ## Two data layers, on purpose
 
@@ -143,13 +144,18 @@ mutation.
 
 ## Display Engine
 
-A separate, additive real-time subsystem (`lib/display-engine/`,
-`components/display-engine/`, `app/displays/*`, `app/(operator)/broadcast`,
-`app/(operator)/display-manager`) layered on top of the above — see
-`docs/DISPLAY_ENGINE.md` for its own design doc. It reads the same
-`useEventStore()`/`useSessions()` this document describes, and syncs its
-own state (display registry, timer overrides, Hold, Broadcasts, Profiles)
-over a separate transport (`BroadcastChannel` by default, an optional
-self-hosted WebSocket relay for cross-device). The two sync mechanisms are
-deliberately independent: Supabase Realtime for core program/live data,
-the Display Engine's own transport for its own state.
+The four public display surfaces (AV/Green Room/General/Presenter) plus
+Broadcast Center and Display Manager are a real-time subsystem
+(`lib/display-engine/`, `components/display-engine/`, `app/{av,green-room,
+general,presenter}`, `app/(operator)/broadcast`,
+`app/(operator)/display-manager`) — see `docs/DISPLAY_ENGINE.md` for its
+own design doc. It reads the same `useEventStore()`/`useSessions()` this
+document describes for core show data, and now *also* syncs its own state
+(display registry, timer, Hold, Broadcasts, Speaker Ready) via Supabase —
+`display_state`/`display_registry`/`display_broadcasts` tables, the exact
+same fetch + `postgres_changes` Realtime + service-role-API-route pattern
+used everywhere else in this document. Only Profiles/Groups/Broadcast
+templates/favorites/drafts (operator UI configuration, not live show
+state) stay on a separate, deliberately local-only transport
+(`BroadcastChannel`, same-browser) — see `docs/DISPLAY_ENGINE.md`'s
+"Real-time transport" section for exactly which state lives where and why.
