@@ -27,6 +27,7 @@ import { HOLD_PRESETS, type TimerMode } from "@/lib/display-engine/types";
 import { DisplayShell } from "@/components/display-engine/display-shell";
 import { HoldScreen } from "@/components/display-engine/hold-screen";
 import { BroadcastOverlay } from "@/components/display-engine/broadcast-overlay";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const MODES: { mode: TimerMode; label: string }[] = [
@@ -56,6 +57,7 @@ export default function PresenterDisplayPage() {
   const fullscreen = useFullscreen();
   const controlsVisible = useIdleVisibility(4000);
   const [holdPresetIndex, setHoldPresetIndex] = useState(0);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const display = useRegisterDisplay("Presenter Display", "presenter", null, (command) => {
     if (command.type === "force-fullscreen") void fullscreen.enter();
@@ -79,8 +81,8 @@ export default function PresenterDisplayPage() {
     "+": () => adjustTimer(30),
     "=": () => adjustTimer(30),
     "-": () => adjustTimer(-30),
-    r: () => resetTimer(),
-    R: () => resetTimer(),
+    r: () => setConfirmReset(true),
+    R: () => setConfirmReset(true),
     f: () => fullscreen.toggle(),
     F: () => fullscreen.toggle(),
     h: () => (engine.hold.active ? deactivateHold() : activateHold(holdPayload(HOLD_PRESETS[0]))),
@@ -246,7 +248,7 @@ export default function PresenterDisplayPage() {
           <ControlButton onClick={() => adjustTimer(60)} label="+1:00">
             <Plus className="h-4 w-4" strokeWidth={2} />
           </ControlButton>
-          <ControlButton onClick={resetTimer} label="Reset">
+          <ControlButton onClick={() => setConfirmReset(true)} label="Reset">
             <RotateCcw className="h-4 w-4" strokeWidth={2} />
           </ControlButton>
 
@@ -310,6 +312,19 @@ export default function PresenterDisplayPage() {
           />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmReset}
+        title="Reset the timer?"
+        description="This zeroes the current progress — it can't be undone."
+        confirmLabel="Reset"
+        tone="danger"
+        onConfirm={() => {
+          resetTimer();
+          setConfirmReset(false);
+        }}
+        onCancel={() => setConfirmReset(false)}
+      />
     </DisplayShell>
   );
 }

@@ -7,6 +7,8 @@ import { useSessions } from "@/lib/use-sessions";
 import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/tv/section-label";
 import { ProgramForm } from "@/components/forms/program-form";
+import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import type { ProgramInput } from "@/lib/validation/program";
 import type { ParsedProgram, ParsedSession } from "@/lib/parse-cuesheet";
 import { cn } from "@/lib/utils";
@@ -46,12 +48,14 @@ function rowToInput(row: ProgramRow): Partial<ProgramInput> {
 
 export default function CueSheetPage() {
   const sessions = useSessions();
+  const toast = useToast();
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const activeSessionId = selectedSessionId ?? sessions[0]?.id ?? "";
 
   const [rows, setRows] = useState<ProgramRow[] | null>(null);
   const [loadingRows, setLoadingRows] = useState(false);
   const [panel, setPanel] = useState<"none" | "upload" | "create" | { edit: ProgramRow }>("none");
+  const deleteConfirm = useConfirmDialog<ProgramRow>();
 
   async function loadRows(sessionId: string) {
     setLoadingRows(true);
@@ -77,9 +81,12 @@ export default function CueSheetPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSessionId]);
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this item?")) return;
-    await fetch(`/api/programs/${id}`, { method: "DELETE" });
+  async function handleDeleteConfirmed() {
+    const row = deleteConfirm.pending;
+    if (!row) return;
+    await fetch(`/api/programs/${row.id}`, { method: "DELETE" });
+    toast.success("Item deleted");
+    deleteConfirm.cancel();
     loadRows(activeSessionId);
   }
 
@@ -133,7 +140,14 @@ export default function CueSheetPage() {
         </div>
 
         {panel === "upload" && (
-          <UploadPanel onDone={() => { setPanel("none"); if (activeSessionId) loadRows(activeSessionId); }} onCancel={() => setPanel("none")} />
+          <UploadPanel
+            onDone={() => {
+              setPanel("none");
+              toast.success("Cue sheet imported");
+              if (activeSessionId) loadRows(activeSessionId);
+            }}
+            onCancel={() => setPanel("none")}
+          />
         )}
 
         {panel === "create" && activeSessionId && (
@@ -141,7 +155,11 @@ export default function CueSheetPage() {
             <ProgramForm
               sessionId={activeSessionId}
               sessionOptions={sessionOptions}
-              onSaved={() => { setPanel("none"); loadRows(activeSessionId); }}
+              onSaved={() => {
+                setPanel("none");
+                toast.success("Item added");
+                loadRows(activeSessionId);
+              }}
               onCancel={() => setPanel("none")}
             />
           </div>
@@ -154,7 +172,11 @@ export default function CueSheetPage() {
               sessionOptions={sessionOptions}
               programId={panel.edit.id}
               initial={rowToInput(panel.edit)}
-              onSaved={() => { setPanel("none"); loadRows(activeSessionId); }}
+              onSaved={() => {
+                setPanel("none");
+                toast.success("Item updated");
+                loadRows(activeSessionId);
+              }}
               onCancel={() => setPanel("none")}
             />
           </div>
@@ -193,7 +215,7 @@ export default function CueSheetPage() {
                   <button
                     type="button"
                     aria-label="Delete"
-                    onClick={() => handleDelete(row.id)}
+                    onClick={() => deleteConfirm.request(row)}
                     className="text-muted-2 hover:text-status-red cursor-pointer p-1.5 shrink-0"
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={2} />
@@ -204,6 +226,16 @@ export default function CueSheetPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirm.isOpen}
+        title={`Delete "${deleteConfirm.pending?.name}"?`}
+        description="This can't be undone."
+        confirmLabel="Delete"
+        tone="danger"
+        onConfirm={handleDeleteConfirmed}
+        onCancel={deleteConfirm.cancel}
+      />
     </main>
   );
 }

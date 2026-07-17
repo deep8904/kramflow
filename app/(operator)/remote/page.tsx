@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, Pause, Play, AlertTriangle, NotebookPen, Hash, X, Send, Lock, Megaphone } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronLeft, Pause, Play, Square, AlertTriangle, NotebookPen, Hash, X, Send, Lock, Megaphone } from "lucide-react";
 import { useEventStore } from "@/lib/store";
 import { useSessions } from "@/lib/use-sessions";
 import { getSessionById } from "@/lib/data/sessions";
@@ -14,9 +14,11 @@ import { ProgressBar } from "@/components/tv/progress-bar";
 import { HoldBadge } from "@/components/tv/hold-badge";
 import { BigActionButton } from "@/components/remote/big-action-button";
 import { QuickActionButton } from "@/components/remote/quick-action-button";
+import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 type Panel = "none" | "jump" | "alert" | "notes" | "broadcast";
+type ConfirmKind = "start" | "finish" | { session: string; label: string } | { jump: number } | null;
 
 export default function RemotePage() {
   const { state, selectSession, start, next, previous, finish, togglePause, jumpTo, setAlert, setNotes } =
@@ -26,6 +28,10 @@ export default function RemotePage() {
   const sessions = useSessions();
   const session = getSessionById(sessions, state.activeSessionId);
   const [panel, setPanel] = useState<Panel>("none");
+  const [confirmKind, setConfirmKind] = useState<ConfirmKind>(null);
+  const [pending, setPending] = useState<"next" | "previous" | "hold" | "start" | "finish" | null>(null);
+  const runningRef = useRef(false);
+  const emergencyConfirm = useConfirmDialog<(typeof EMERGENCY_PRESETS)[number]>();
 
   const progress = session ? state.progressBySession[state.activeSessionId] : undefined;
   const currentOrder = progress?.currentOrder ?? null;
@@ -35,6 +41,29 @@ export default function RemotePage() {
   const min = 1;
   const max = session?.items.length ?? 0;
   const isFinished = currentOrder !== null && currentOrder > max;
+  const isLastItem = currentOrder === max;
+  const currentSessionHasProgress = currentOrder !== null;
+
+  async function run(kind: NonNullable<typeof pending>, action: () => Promise<unknown> | unknown) {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    setPending(kind);
+    try {
+      await action();
+    } finally {
+      runningRef.current = false;
+      setPending(null);
+    }
+  }
+
+  function handleSessionClick(sessionId: string, label: string) {
+    if (sessionId === state.activeSessionId) return;
+    if (currentSessionHasProgress) {
+      setConfirmKind({ session: sessionId, label });
+    } else {
+      selectSession(sessionId);
+    }
+  }
 
   if (!session) {
     return (
@@ -71,7 +100,7 @@ export default function RemotePage() {
             <button
               key={s.id}
               type="button"
-              onClick={() => selectSession(s.id)}
+              onClick={() => handleSessionClick(s.id, `${s.dayLabel} ${s.sessionLabel}`)}
               aria-current={s.id === state.activeSessionId ? "true" : undefined}
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-caption font-medium cursor-pointer transition-colors",
@@ -130,8 +159,8 @@ export default function RemotePage() {
             onClose={() => setPanel("none")}
             max={max}
             currentNotes={live?.notes ?? ""}
-            onJump={(order) => {
-              jumpTo(order);
+            onRequestJump={(order) => {
+              setConfirmKind({ jump: order });
               setPanel("none");
             }}
             onAlert={(message, severity) => {
@@ -158,45 +187,46 @@ export default function RemotePage() {
               });
               setPanel("none");
             }}
-            onEmergency={(preset) => {
-              sendBroadcast({
-                type: "emergency",
-                title: preset.title,
-                message: preset.message,
-                icon: null,
-                priority: 3,
-                target: { kind: "all" },
-                expiresInMinutes: null,
-                durationSeconds: null,
-                acknowledgementRequired: true,
-                persistent: true,
-                scheduledFor: null,
-              });
+            onRequestEmergency={(preset) => {
+              emergencyConfirm.request(preset);
               setPanel("none");
             }}
           />
         )}
 
         {currentOrder === null ? (
-          <BigActionButton onClick={start} className="h-24">
+          <BigActionButton onClick={() => setConfirmKind("start")} className="h-24" disabled={pending !== null}>
             <Play className="h-7 w-7" strokeWidth={2} />
             Start
           </BigActionButton>
         ) : isFinished ? null : (
           <>
             <BigActionButton
-              onClick={() => (currentOrder === max ? finish(max) : next(max))}
+              onClick={() => run("next", () => next(max))}
               className="h-28"
+              disabled={isLastItem || pending !== null}
             >
-              {currentOrder === max ? "Finish" : "Next"}
+              Next
             </BigActionButton>
+
+            {isLastItem && (
+              <BigActionButton
+                variant="danger"
+                className="h-16 mt-3"
+                onClick={() => setConfirmKind("finish")}
+                disabled={pending !== null}
+              >
+                <Square className="h-5 w-5" strokeWidth={2} />
+                Finish Session
+              </BigActionButton>
+            )}
 
             <div className="flex gap-3 mt-3">
               <BigActionButton
                 variant="secondary"
                 className="h-16 text-base"
-                onClick={() => previous(min)}
-                disabled={currentOrder === min}
+                onClick={() => run("previous", () => previous(min))}
+                disabled={currentOrder === min || pending !== null}
               >
                 <ChevronLeft className="h-5 w-5" strokeWidth={2} />
                 Previous
@@ -204,7 +234,8 @@ export default function RemotePage() {
               <BigActionButton
                 variant={state.pausedAt ? "warning" : "secondary"}
                 className="h-16 text-base"
-                onClick={togglePause}
+                onClick={() => run("hold", togglePause)}
+                disabled={pending !== null}
               >
                 {state.pausedAt ? <Play className="h-5 w-5" strokeWidth={2} /> : <Pause className="h-5 w-5" strokeWidth={2} />}
                 {state.pausedAt ? "Resume" : "Hold"}
@@ -240,6 +271,88 @@ export default function RemotePage() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmKind === "start"}
+        title="Start the session?"
+        description="This puts the first item live on every connected display."
+        confirmLabel="Start"
+        onConfirm={() => {
+          setConfirmKind(null);
+          run("start", start);
+        }}
+        onCancel={() => setConfirmKind(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmKind === "finish"}
+        title="Finish the session?"
+        description="This marks the session complete on every connected display. You can still use Previous to go back."
+        confirmLabel="Finish Session"
+        tone="danger"
+        onConfirm={() => {
+          setConfirmKind(null);
+          run("finish", () => finish(max));
+        }}
+        onCancel={() => setConfirmKind(null)}
+      />
+
+      <ConfirmDialog
+        open={typeof confirmKind === "object" && confirmKind !== null && "session" in confirmKind}
+        title={`Switch to ${typeof confirmKind === "object" && confirmKind && "session" in confirmKind ? confirmKind.label : ""}?`}
+        description="The current session has already started. Switching changes what's live on every connected display."
+        confirmLabel="Switch Session"
+        tone="danger"
+        onConfirm={() => {
+          if (typeof confirmKind === "object" && confirmKind && "session" in confirmKind) {
+            selectSession(confirmKind.session);
+          }
+          setConfirmKind(null);
+        }}
+        onCancel={() => setConfirmKind(null)}
+      />
+
+      <ConfirmDialog
+        open={typeof confirmKind === "object" && confirmKind !== null && "jump" in confirmKind}
+        title={`Jump to item ${typeof confirmKind === "object" && confirmKind && "jump" in confirmKind ? confirmKind.jump : ""}?`}
+        description="This changes what's live on every connected display right now."
+        confirmLabel="Jump Here"
+        onConfirm={() => {
+          if (typeof confirmKind === "object" && confirmKind && "jump" in confirmKind) {
+            jumpTo(confirmKind.jump);
+          }
+          setConfirmKind(null);
+        }}
+        onCancel={() => setConfirmKind(null)}
+      />
+
+      <ConfirmDialog
+        open={emergencyConfirm.isOpen}
+        title={`Send "${emergencyConfirm.pending?.title}" to every display?`}
+        description="This takes over every connected screen immediately."
+        confirmLabel="Send Emergency"
+        tone="danger"
+        onConfirm={() => {
+          const preset = emergencyConfirm.pending;
+          if (preset) {
+            sendBroadcast({
+              type: "emergency",
+              title: preset.title,
+              message: preset.message,
+              icon: null,
+              priority: 3,
+              target: { kind: "all" },
+              expiresInMinutes: null,
+              durationSeconds: null,
+              acknowledgementRequired: true,
+              persistent: true,
+              scheduledFor: null,
+            });
+          }
+          emergencyConfirm.cancel();
+        }}
+        onCancel={emergencyConfirm.cancel}
+      />
     </main>
   );
 }
@@ -249,27 +362,26 @@ function QuickPanel({
   onClose,
   max,
   currentNotes,
-  onJump,
+  onRequestJump,
   onAlert,
   onSaveNotes,
   onBroadcast,
-  onEmergency,
+  onRequestEmergency,
 }: {
   panel: Exclude<Panel, "none">;
   onClose: () => void;
   max: number;
   currentNotes: string;
-  onJump: (order: number) => void;
+  onRequestJump: (order: number) => void;
   onAlert: (message: string, severity: "info" | "warning" | "critical") => void;
   onSaveNotes: (text: string) => void;
   onBroadcast: (title: string, message: string) => void;
-  onEmergency: (preset: (typeof EMERGENCY_PRESETS)[number]) => void;
+  onRequestEmergency: (preset: (typeof EMERGENCY_PRESETS)[number]) => void;
 }) {
   const [jumpValue, setJumpValue] = useState("");
   const [alertValue, setAlertValue] = useState("");
   const [notesValue, setNotesValue] = useState(currentNotes);
   const [broadcastValue, setBroadcastValue] = useState("");
-  const [confirmEmergency, setConfirmEmergency] = useState<(typeof EMERGENCY_PRESETS)[number] | null>(null);
 
   return (
     <div className="rounded-2xl bg-card p-5 mb-3">
@@ -311,7 +423,7 @@ function QuickPanel({
             aria-label="Jump"
             className="h-14 w-14 rounded-xl bg-primary text-background flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             disabled={!jumpValue || Number(jumpValue) < 1 || Number(jumpValue) > max}
-            onClick={() => onJump(Number(jumpValue))}
+            onClick={() => onRequestJump(Number(jumpValue))}
           >
             <Send className="h-5 w-5" strokeWidth={2} />
           </button>
@@ -383,43 +495,19 @@ function QuickPanel({
             </button>
           </div>
 
-          {confirmEmergency ? (
-            <div className="rounded-xl bg-status-red/10 border border-status-red/30 p-3">
-              <p className="text-caption text-primary">
-                Send <span className="font-semibold">{confirmEmergency.title}</span> to every display?
-              </p>
-              <div className="flex gap-2 mt-2">
-                <button
-                  type="button"
-                  className="flex-1 h-10 rounded-lg bg-status-red text-white text-caption font-semibold cursor-pointer"
-                  onClick={() => onEmergency(confirmEmergency)}
-                >
-                  Confirm
-                </button>
-                <button
-                  type="button"
-                  className="h-10 px-4 rounded-lg text-muted text-caption cursor-pointer"
-                  onClick={() => setConfirmEmergency(null)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {EMERGENCY_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => setConfirmEmergency(preset)}
-                  className="flex items-center gap-1.5 rounded-full bg-status-red/15 text-status-red px-3 py-1.5 text-caption font-semibold cursor-pointer"
-                >
-                  <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {EMERGENCY_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => onRequestEmergency(preset)}
+                className="flex items-center gap-1.5 rounded-full bg-status-red/15 text-status-red px-3 py-1.5 text-caption font-semibold cursor-pointer"
+              >
+                <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
+                {preset.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

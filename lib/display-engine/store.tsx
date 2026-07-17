@@ -397,33 +397,33 @@ async function patchJson(url: string, body: unknown) {
 // ---------------------------------------------------------------------------
 
 function registerDisplay(input: { id: string; name: string; type: DisplayType; room?: string | null }) {
-  postJson("/api/display-engine/registry", { id: input.id, name: input.name, type: input.type, room: input.room ?? null });
+  return postJson("/api/display-engine/registry", { id: input.id, name: input.name, type: input.type, room: input.room ?? null });
 }
 
 function heartbeatDisplay(id: string, latencyMs: number | null) {
-  postJson("/api/display-engine/registry", { id, latencyMs });
+  return postJson("/api/display-engine/registry", { id, latencyMs });
 }
 
 function renameDisplay(id: string, name: string) {
-  patchJson(`/api/display-engine/registry/${id}`, { name });
+  return patchJson(`/api/display-engine/registry/${id}`, { name });
 }
 
 function assignDisplay(id: string, patch: { type?: DisplayType; room?: string | null; profileId?: string | null }) {
-  patchJson(`/api/display-engine/registry/${id}`, patch);
+  return patchJson(`/api/display-engine/registry/${id}`, patch);
 }
 
 function removeDisplay(id: string) {
-  fetch(`/api/display-engine/registry/${id}`, { method: "DELETE" }).catch((err) =>
+  return fetch(`/api/display-engine/registry/${id}`, { method: "DELETE" }).catch((err) =>
     console.error("[display-engine] removeDisplay failed:", err)
   );
 }
 
 function sendCommand(id: string, command: DisplayCommand) {
-  patchJson(`/api/display-engine/registry/${id}`, { pendingCommand: command });
+  return patchJson(`/api/display-engine/registry/${id}`, { pendingCommand: command });
 }
 
 function clearCommand(id: string) {
-  patchJson(`/api/display-engine/registry/${id}`, { pendingCommand: null });
+  return patchJson(`/api/display-engine/registry/${id}`, { pendingCommand: null });
 }
 
 // ---------------------------------------------------------------------------
@@ -454,35 +454,35 @@ function deleteGroup(id: string) {
 // ---------------------------------------------------------------------------
 
 function setTimerMode(mode: TimerMode) {
-  patchJson("/api/display-engine/timer", { action: "setMode", mode });
+  return patchJson("/api/display-engine/timer", { action: "setMode", mode });
 }
 
 function setTimerSource(source: "auto" | "manual") {
-  patchJson("/api/display-engine/timer", { action: "setSource", source });
+  return patchJson("/api/display-engine/timer", { action: "setSource", source });
 }
 
 function startManualTimer(durationSeconds: number) {
-  patchJson("/api/display-engine/timer", { action: "start", durationSeconds });
+  return patchJson("/api/display-engine/timer", { action: "start", durationSeconds });
 }
 
 function pauseTimer() {
-  patchJson("/api/display-engine/timer", { action: "pause" });
+  return patchJson("/api/display-engine/timer", { action: "pause" });
 }
 
 function resumeTimer() {
-  patchJson("/api/display-engine/timer", { action: "resume" });
+  return patchJson("/api/display-engine/timer", { action: "resume" });
 }
 
 function resetTimer() {
-  patchJson("/api/display-engine/timer", { action: "reset" });
+  return patchJson("/api/display-engine/timer", { action: "reset" });
 }
 
 function adjustTimer(deltaSeconds: number) {
-  patchJson("/api/display-engine/timer", { action: "adjust", deltaSeconds });
+  return patchJson("/api/display-engine/timer", { action: "adjust", deltaSeconds });
 }
 
 function setTimerThresholds(thresholds: TimerThresholds) {
-  patchJson("/api/display-engine/timer", { action: "setThresholds", thresholds });
+  return patchJson("/api/display-engine/timer", { action: "setThresholds", thresholds });
 }
 
 // ---------------------------------------------------------------------------
@@ -490,11 +490,11 @@ function setTimerThresholds(thresholds: TimerThresholds) {
 // ---------------------------------------------------------------------------
 
 function activateHold(input: { message: string; subMessage: string | null; continueClock: boolean }) {
-  patchJson("/api/display-engine/hold", { active: true, ...input });
+  return patchJson("/api/display-engine/hold", { active: true, ...input });
 }
 
 function deactivateHold() {
-  patchJson("/api/display-engine/hold", { active: false });
+  return patchJson("/api/display-engine/hold", { active: false });
 }
 
 // ---------------------------------------------------------------------------
@@ -502,16 +502,16 @@ function deactivateHold() {
 // templates/favorites/drafts stay local.
 // ---------------------------------------------------------------------------
 
-function sendBroadcast(draft: BroadcastDraft): void {
-  postJson("/api/display-engine/broadcasts", { draft });
+function sendBroadcast(draft: BroadcastDraft) {
+  return postJson("/api/display-engine/broadcasts", { draft });
 }
 
-function scheduleBroadcast(draft: BroadcastDraft, scheduledFor: string): void {
-  postJson("/api/display-engine/broadcasts", { draft, scheduledFor });
+function scheduleBroadcast(draft: BroadcastDraft, scheduledFor: string) {
+  return postJson("/api/display-engine/broadcasts", { draft, scheduledFor });
 }
 
 function cancelScheduled(id: string) {
-  fetch(`/api/display-engine/broadcasts/${id}`, { method: "DELETE" }).catch((err) =>
+  return fetch(`/api/display-engine/broadcasts/${id}`, { method: "DELETE" }).catch((err) =>
     console.error("[display-engine] cancelScheduled failed:", err)
   );
 }
@@ -538,16 +538,16 @@ function ensureSchedulerRunning() {
 }
 
 function dismissBroadcast(id: string) {
-  postJson(`/api/display-engine/broadcasts/${id}/dismiss`, {});
+  return postJson(`/api/display-engine/broadcasts/${id}/dismiss`, {});
 }
 
 function acknowledgeBroadcast(id: string, displayId: string) {
-  postJson(`/api/display-engine/broadcasts/${id}/acknowledge`, { displayId });
+  return postJson(`/api/display-engine/broadcasts/${id}/acknowledge`, { displayId });
 }
 
 function clearEmergencies() {
   const active = remoteSlice.broadcastRows.filter((r) => r.status === "sent" && r.dismissed_at === null && r.type === "emergency");
-  for (const row of active) dismissBroadcast(row.id);
+  return Promise.all(active.map((row) => dismissBroadcast(row.id)));
 }
 
 function saveTemplate(name: string, draft: BroadcastDraft): string {
@@ -585,7 +585,7 @@ function deleteDraft(index: number) {
 // ---------------------------------------------------------------------------
 
 function setSpeakerReady(programId: string, ready: boolean) {
-  patchJson("/api/display-engine/speaker-ready", { programId, ready });
+  return patchJson("/api/display-engine/speaker-ready", { programId, ready });
 }
 
 // ---------------------------------------------------------------------------

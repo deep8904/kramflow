@@ -2,11 +2,24 @@
 
 import { useSessions } from "@/lib/use-sessions";
 import { useEventStore } from "@/lib/store";
+import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 export function SessionSwitcher() {
   const { state, selectSession } = useEventStore();
   const sessions = useSessions();
+  const switchConfirm = useConfirmDialog<{ id: string; label: string }>();
+
+  const currentSessionHasProgress = state.progressBySession[state.activeSessionId]?.currentOrder !== null;
+
+  function handleClick(sessionId: string, label: string) {
+    if (sessionId === state.activeSessionId) return;
+    if (currentSessionHasProgress) {
+      switchConfirm.request({ id: sessionId, label });
+    } else {
+      selectSession(sessionId);
+    }
+  }
 
   return (
     <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -18,7 +31,7 @@ export function SessionSwitcher() {
           <button
             key={s.id}
             type="button"
-            onClick={() => selectSession(s.id)}
+            onClick={() => handleClick(s.id, `${s.dayLabel} ${s.sessionLabel}`)}
             aria-current={active ? "true" : undefined}
             aria-label={`${s.dayLabel} ${s.sessionLabel}${isLive ? " (in progress)" : ""}`}
             className={cn(
@@ -37,6 +50,19 @@ export function SessionSwitcher() {
           </button>
         );
       })}
+
+      <ConfirmDialog
+        open={switchConfirm.isOpen}
+        title={`Switch to ${switchConfirm.pending?.label}?`}
+        description="The current session has already started. Switching changes what's live on every connected display."
+        confirmLabel="Switch Session"
+        tone="danger"
+        onConfirm={() => {
+          if (switchConfirm.pending) selectSession(switchConfirm.pending.id);
+          switchConfirm.cancel();
+        }}
+        onCancel={switchConfirm.cancel}
+      />
     </div>
   );
 }

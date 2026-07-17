@@ -14,6 +14,8 @@ import {
 } from "@/lib/display-engine/types";
 import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/tv/section-label";
+import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 const BROADCAST_TYPES: { value: BroadcastType; label: string }[] = [
@@ -52,15 +54,22 @@ const EMPTY_DRAFT: BroadcastDraft = {
 };
 
 type Tab = "history" | "scheduled" | "templates" | "drafts";
+type DestructiveAction =
+  | { kind: "clear-emergencies" }
+  | { kind: "cancel-scheduled"; id: string; title: string }
+  | { kind: "delete-template"; id: string; name: string }
+  | { kind: "delete-draft"; index: number; title: string };
 
 export default function BroadcastCenterPage() {
   const { lock } = useAuth();
+  const toast = useToast();
   const {
     state: engine,
     sendBroadcast,
     scheduleBroadcast,
     cancelScheduled,
     dismissBroadcast,
+    clearEmergencies,
     saveTemplate,
     deleteTemplate,
     toggleFavoriteTemplate,
@@ -72,8 +81,8 @@ export default function BroadcastCenterPage() {
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [tab, setTab] = useState<Tab>("history");
   const [search, setSearch] = useState("");
-  const [pendingEmergency, setPendingEmergency] = useState<(typeof EMERGENCY_PRESETS)[number] | null>(null);
-  const [justSent, setJustSent] = useState<string | null>(null);
+  const emergencyConfirm = useConfirmDialog<(typeof EMERGENCY_PRESETS)[number]>();
+  const destructiveConfirm = useConfirmDialog<DestructiveAction>();
 
   function patchDraft(patch: Partial<BroadcastDraft>) {
     setDraft((d) => ({ ...d, ...patch }));
@@ -92,36 +101,41 @@ export default function BroadcastCenterPage() {
     if (!draft.title.trim()) return;
     if (scheduleEnabled && draft.scheduledFor) {
       scheduleBroadcast(draft, draft.scheduledFor);
-      setJustSent("Scheduled");
+      toast.success("Broadcast scheduled");
     } else {
       sendBroadcast(draft);
-      setJustSent("Sent");
+      toast.success("Broadcast sent");
     }
     resetCompose();
-    setTimeout(() => setJustSent(null), 2500);
-  }
-
-  function handleEmergencyConfirm() {
-    if (!pendingEmergency) return;
-    sendBroadcast({
-      ...EMPTY_DRAFT,
-      type: "emergency",
-      title: pendingEmergency.title,
-      message: pendingEmergency.message,
-      priority: 3,
-      target: { kind: "all" },
-      acknowledgementRequired: true,
-      persistent: true,
-    });
-    setPendingEmergency(null);
-    setJustSent("Emergency broadcast sent");
-    setTimeout(() => setJustSent(null), 2500);
   }
 
   function loadIntoCompose(source: BroadcastDraft) {
     setDraft({ ...source, scheduledFor: null });
     setScheduleEnabled(false);
     setTab("history");
+  }
+
+  function handleDestructiveConfirm() {
+    const action = destructiveConfirm.pending;
+    if (!action) return;
+    switch (action.kind) {
+      case "clear-emergencies":
+        clearEmergencies();
+        break;
+      case "cancel-scheduled":
+        cancelScheduled(action.id);
+        toast.success("Scheduled broadcast cancelled");
+        break;
+      case "delete-template":
+        deleteTemplate(action.id);
+        toast.success("Template deleted");
+        break;
+      case "delete-draft":
+        deleteDraft(action.index);
+        toast.success("Draft deleted");
+        break;
+    }
+    destructiveConfirm.cancel();
   }
 
   const filteredHistory = useMemo(() => {
@@ -160,12 +174,9 @@ export default function BroadcastCenterPage() {
             <h1 className="text-title text-primary mt-1">Broadcast Center</h1>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {justSent && <span className="text-caption text-status-green font-medium">{justSent}</span>}
-          <Button variant="ghost" size="sm" onClick={lock}>
-            Lock
-          </Button>
-        </div>
+        <Button variant="ghost" size="sm" onClick={lock}>
+          Lock
+        </Button>
       </header>
 
       {/* Emergency quick-send */}
@@ -176,7 +187,7 @@ export default function BroadcastCenterPage() {
             <button
               key={preset.label}
               type="button"
-              onClick={() => setPendingEmergency(preset)}
+              onClick={() => emergencyConfirm.request(preset)}
               className="flex items-center gap-2 rounded-full bg-status-red/15 text-status-red px-4 py-2 text-body font-semibold cursor-pointer hover:bg-status-red/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <AlertTriangle className="h-4 w-4" strokeWidth={2} />
@@ -185,29 +196,13 @@ export default function BroadcastCenterPage() {
           ))}
         </div>
 
-        {pendingEmergency && (
-          <div className="mt-4 rounded-card bg-status-red/10 border border-status-red/30 px-6 py-4 flex items-center justify-between gap-4">
-            <p className="text-body text-primary">
-              Send <span className="font-semibold">{pendingEmergency.title}</span> to every connected display now?
-            </p>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button variant="danger" size="sm" onClick={handleEmergencyConfirm}>
-                Confirm Send
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setPendingEmergency(null)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-
         {engine.broadcasts.active.some((m) => m.type === "emergency") && (
           <div className="mt-4 rounded-card bg-status-red/10 border border-status-red/30 px-6 py-3 flex items-center justify-between">
             <p className="text-caption text-status-red font-medium">An emergency broadcast is currently active.</p>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => engine.broadcasts.active.filter((m) => m.type === "emergency").forEach((m) => dismissBroadcast(m.id))}
+              onClick={() => destructiveConfirm.request({ kind: "clear-emergencies" })}
             >
               Clear
             </Button>
@@ -411,6 +406,7 @@ export default function BroadcastCenterPage() {
                 onClick={() => {
                   if (!draft.title.trim()) return;
                   saveDraft(draft);
+                  toast.success("Draft saved");
                 }}
               >
                 Save Draft
@@ -420,6 +416,7 @@ export default function BroadcastCenterPage() {
                 onClick={() => {
                   if (!draft.title.trim()) return;
                   saveTemplate(draft.title, draft);
+                  toast.success("Template saved");
                 }}
               >
                 Save as Template
@@ -499,7 +496,10 @@ export default function BroadcastCenterPage() {
                       <p className="text-body text-primary font-medium mt-1">{m.title}</p>
                       {m.message && <p className="text-caption text-muted mt-1">{m.message}</p>}
                     </div>
-                    <IconButton label="Cancel" onClick={() => cancelScheduled(m.id)}>
+                    <IconButton
+                      label="Cancel"
+                      onClick={() => destructiveConfirm.request({ kind: "cancel-scheduled", id: m.id, title: m.title })}
+                    >
                       <Trash2 className="h-4 w-4" strokeWidth={2} />
                     </IconButton>
                   </div>
@@ -532,7 +532,10 @@ export default function BroadcastCenterPage() {
                       <IconButton label="Use template" onClick={() => loadIntoCompose(t.draft)}>
                         <Copy className="h-4 w-4" strokeWidth={2} />
                       </IconButton>
-                      <IconButton label="Delete" onClick={() => deleteTemplate(t.id)}>
+                      <IconButton
+                        label="Delete"
+                        onClick={() => destructiveConfirm.request({ kind: "delete-template", id: t.id, name: t.name })}
+                      >
                         <Trash2 className="h-4 w-4" strokeWidth={2} />
                       </IconButton>
                     </div>
@@ -554,7 +557,10 @@ export default function BroadcastCenterPage() {
                       <IconButton label="Load" onClick={() => loadIntoCompose(d)}>
                         <Copy className="h-4 w-4" strokeWidth={2} />
                       </IconButton>
-                      <IconButton label="Delete" onClick={() => deleteDraft(i)}>
+                      <IconButton
+                        label="Delete"
+                        onClick={() => destructiveConfirm.request({ kind: "delete-draft", index: i, title: d.title || "Untitled draft" })}
+                      >
                         <Trash2 className="h-4 w-4" strokeWidth={2} />
                       </IconButton>
                     </div>
@@ -564,6 +570,56 @@ export default function BroadcastCenterPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={emergencyConfirm.isOpen}
+        title={`Send "${emergencyConfirm.pending?.title}" to every display?`}
+        description="This takes over every connected screen immediately."
+        confirmLabel="Send Emergency"
+        tone="danger"
+        onConfirm={() => {
+          const preset = emergencyConfirm.pending;
+          if (preset) {
+            sendBroadcast({
+              ...EMPTY_DRAFT,
+              type: "emergency",
+              title: preset.title,
+              message: preset.message,
+              priority: 3,
+              target: { kind: "all" },
+              acknowledgementRequired: true,
+              persistent: true,
+            });
+            toast.success("Emergency broadcast sent");
+          }
+          emergencyConfirm.cancel();
+        }}
+        onCancel={emergencyConfirm.cancel}
+      />
+
+      <ConfirmDialog
+        open={destructiveConfirm.isOpen}
+        title={
+          destructiveConfirm.pending?.kind === "clear-emergencies"
+            ? "Clear the active emergency broadcast?"
+            : destructiveConfirm.pending?.kind === "cancel-scheduled"
+              ? `Cancel "${destructiveConfirm.pending.title}"?`
+              : destructiveConfirm.pending?.kind === "delete-template"
+                ? `Delete template "${destructiveConfirm.pending.name}"?`
+                : destructiveConfirm.pending?.kind === "delete-draft"
+                  ? `Delete draft "${destructiveConfirm.pending.title}"?`
+                  : ""
+        }
+        description={
+          destructiveConfirm.pending?.kind === "clear-emergencies"
+            ? "This removes it from every connected display."
+            : "This can't be undone."
+        }
+        confirmLabel={destructiveConfirm.pending?.kind === "clear-emergencies" ? "Clear" : "Delete"}
+        tone="danger"
+        onConfirm={handleDestructiveConfirm}
+        onCancel={destructiveConfirm.cancel}
+      />
     </main>
   );
 }

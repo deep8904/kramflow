@@ -114,48 +114,52 @@ async function sendAction(body: Record<string, unknown>) {
   }
 }
 
+// Every action now returns sendAction's promise (previously discarded —
+// fire-and-forget) so callers that need to disable a button until the
+// request lands (double-submit prevention) can await it. Callers that
+// don't care can keep calling these exactly as before.
 function selectSession(sessionId: string) {
-  sendAction({ action: "selectSession", sessionId });
+  return sendAction({ action: "selectSession", sessionId });
 }
 
 function start() {
-  sendAction({ action: "start" });
+  return sendAction({ action: "start" });
 }
 
 function next(maxOrder: number) {
-  sendAction({ action: "next", maxOrder });
+  return sendAction({ action: "next", maxOrder });
 }
 
 function previous(minOrder: number) {
-  sendAction({ action: "previous", minOrder });
+  return sendAction({ action: "previous", minOrder });
 }
 
 function jumpTo(order: number) {
-  sendAction({ action: "jumpTo", order });
+  return sendAction({ action: "jumpTo", order });
 }
 
 function finish(maxOrder: number) {
-  sendAction({ action: "finish", maxOrder });
+  return sendAction({ action: "finish", maxOrder });
 }
 
 function togglePause() {
-  sendAction({ action: "togglePause" });
+  return sendAction({ action: "togglePause" });
 }
 
 function setAlert(alert: Alert) {
-  sendAction({ action: "setAlert", alert });
+  return sendAction({ action: "setAlert", alert });
 }
 
 function dismissAlert() {
-  sendAction({ action: "dismissAlert" });
+  return sendAction({ action: "dismissAlert" });
 }
 
 function setNotes(programId: string, notes: string) {
-  sendAction({ action: "setNotes", programId, notes });
+  return sendAction({ action: "setNotes", programId, notes });
 }
 
 function reset() {
-  sendAction({ action: "reset" });
+  return sendAction({ action: "reset" });
 }
 
 export function useEventStore() {

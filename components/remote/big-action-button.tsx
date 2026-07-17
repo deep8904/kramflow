@@ -6,7 +6,7 @@ export function BigActionButton({
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "warning";
+  variant?: "primary" | "secondary" | "warning" | "danger";
 }) {
   return (
     <button
@@ -17,6 +17,7 @@ export function BigActionButton({
         variant === "primary" && "bg-primary text-background",
         variant === "secondary" && "bg-card text-primary border border-white/10",
         variant === "warning" && "bg-status-orange/15 text-status-orange border border-status-orange/30",
+        variant === "danger" && "bg-status-red/15 text-status-red border border-status-red/30",
         className
       )}
       {...props}

@@ -3,6 +3,7 @@
 import { useEventStore } from "@/lib/store";
 import { effectiveNotes, type Session, type Program } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 type RowStatus = "upcoming" | "live" | "done";
@@ -10,6 +11,7 @@ type RowStatus = "upcoming" | "live" | "done";
 export function ProgramList({ session }: { session: Session }) {
   const { state, jumpTo } = useEventStore();
   const currentOrder = state.progressBySession[state.activeSessionId]?.currentOrder ?? null;
+  const jumpConfirm = useConfirmDialog<Program>();
 
   return (
     <div className="flex flex-col">
@@ -26,6 +28,10 @@ export function ProgramList({ session }: { session: Session }) {
         const showSectionHeader = program.sectionLabel && program.sectionLabel !== previousSection;
         const hasNotes = effectiveNotes(state, program).length > 0;
 
+        // Clicking the already-live row would be a no-op jump — skip the
+        // confirm dialog entirely rather than show a pointless prompt.
+        const onClick = status === "live" ? undefined : () => jumpConfirm.request(program);
+
         return (
           <div key={program.id}>
             {showSectionHeader && (
@@ -34,18 +40,25 @@ export function ProgramList({ session }: { session: Session }) {
               </p>
             )}
             {program.type === "break" ? (
-              <BreakRow program={program} status={status} onClick={() => jumpTo(program.order)} />
+              <BreakRow program={program} status={status} onClick={onClick} />
             ) : (
-              <ItemRow
-                program={program}
-                status={status}
-                hasNotes={hasNotes}
-                onClick={() => jumpTo(program.order)}
-              />
+              <ItemRow program={program} status={status} hasNotes={hasNotes} onClick={onClick} />
             )}
           </div>
         );
       })}
+
+      <ConfirmDialog
+        open={jumpConfirm.isOpen}
+        title={`Jump to "${jumpConfirm.pending?.title}"?`}
+        description="This changes what's live on every connected display right now."
+        confirmLabel="Jump Here"
+        onConfirm={() => {
+          if (jumpConfirm.pending) jumpTo(jumpConfirm.pending.order);
+          jumpConfirm.cancel();
+        }}
+        onCancel={jumpConfirm.cancel}
+      />
     </div>
   );
 }
@@ -63,16 +76,18 @@ function BreakRow({
 }: {
   program: Program;
   status: RowStatus;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={!onClick}
       aria-current={status === "live" ? "true" : undefined}
       aria-label={`Jump to ${program.title}${status === "live" ? " (live)" : ""}`}
       className={cn(
-        "w-full flex items-center gap-3 sm:gap-5 py-3 px-3 rounded-lg cursor-pointer hover:bg-card transition-colors border-b border-white/5 text-left",
+        "w-full flex items-center gap-3 sm:gap-5 py-3 px-3 rounded-lg transition-colors border-b border-white/5 text-left",
+        onClick ? "cursor-pointer hover:bg-card" : "cursor-default",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         status === "live" && "bg-card"
       )}
@@ -93,7 +108,7 @@ function ItemRow({
   program: Program;
   status: RowStatus;
   hasNotes: boolean;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   const meta = [program.presenter, program.scheduledStart, program.durationMinutes > 0 ? `${program.durationMinutes}m` : null]
     .filter(Boolean)
@@ -103,10 +118,12 @@ function ItemRow({
     <button
       type="button"
       onClick={onClick}
+      disabled={!onClick}
       aria-current={status === "live" ? "true" : undefined}
       aria-label={`Jump to ${program.title}${program.presenter ? `, ${program.presenter}` : ""}${status === "live" ? " (live)" : status === "done" ? " (done)" : ""}`}
       className={cn(
-        "w-full flex items-start sm:items-center gap-3 sm:gap-5 py-4 sm:py-5 px-3 rounded-lg cursor-pointer hover:bg-card transition-colors border-b border-white/5 text-left",
+        "w-full flex items-start sm:items-center gap-3 sm:gap-5 py-4 sm:py-5 px-3 rounded-lg transition-colors border-b border-white/5 text-left",
+        onClick ? "cursor-pointer hover:bg-card" : "cursor-default",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         status === "live" && "bg-card"
       )}

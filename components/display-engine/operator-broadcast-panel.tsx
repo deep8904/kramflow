@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AlertTriangle, ChevronDown, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { SectionLabel } from "@/components/tv/section-label";
 import { useDisplayEngine } from "@/lib/display-engine/store";
 import { EMERGENCY_PRESETS, type BroadcastType } from "@/lib/display-engine/types";
@@ -27,12 +29,12 @@ const QUICK_TYPES: { value: BroadcastType; label: string; tone: string }[] = [
  */
 export function OperatorBroadcastPanel() {
   const { sendBroadcast } = useDisplayEngine();
+  const toast = useToast();
   const [expanded, setExpanded] = useState(false);
   const [type, setType] = useState<BroadcastType>("info");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [confirmEmergency, setConfirmEmergency] = useState<(typeof EMERGENCY_PRESETS)[number] | null>(null);
-  const [justSent, setJustSent] = useState(false);
+  const emergencyConfirm = useConfirmDialog<(typeof EMERGENCY_PRESETS)[number]>();
 
   function send() {
     if (!title.trim()) return;
@@ -51,26 +53,7 @@ export function OperatorBroadcastPanel() {
     });
     setTitle("");
     setMessage("");
-    setJustSent(true);
-    setTimeout(() => setJustSent(false), 2000);
-  }
-
-  function sendEmergency() {
-    if (!confirmEmergency) return;
-    sendBroadcast({
-      type: "emergency",
-      title: confirmEmergency.title,
-      message: confirmEmergency.message,
-      icon: null,
-      priority: 3,
-      target: { kind: "all" },
-      expiresInMinutes: null,
-      durationSeconds: null,
-      acknowledgementRequired: true,
-      persistent: true,
-      scheduledFor: null,
-    });
-    setConfirmEmergency(null);
+    toast.success("Broadcast sent");
   }
 
   return (
@@ -119,7 +102,7 @@ export function OperatorBroadcastPanel() {
 
           <Button variant="primary" size="sm" className="w-full" disabled={!title.trim()} onClick={send}>
             <Send className="h-4 w-4" strokeWidth={2} />
-            {justSent ? "Sent" : "Send to All Displays"}
+            Send to All Displays
           </Button>
 
           <Link
@@ -130,38 +113,51 @@ export function OperatorBroadcastPanel() {
           </Link>
 
           <div className="border-t border-white/5 pt-3 mt-1">
-            {confirmEmergency ? (
-              <div className="rounded-lg bg-status-red/10 border border-status-red/30 p-3">
-                <p className="text-caption text-primary">
-                  Send <span className="font-semibold">{confirmEmergency.title}</span> to every display?
-                </p>
-                <div className="flex gap-2 mt-2">
-                  <Button variant="danger" size="sm" className="flex-1" onClick={sendEmergency}>
-                    Confirm
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setConfirmEmergency(null)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {EMERGENCY_PRESETS.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => setConfirmEmergency(preset)}
-                    className="flex items-center gap-1.5 rounded-full bg-status-red/15 text-status-red px-3 py-1.5 text-caption font-semibold cursor-pointer hover:bg-status-red/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {EMERGENCY_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => emergencyConfirm.request(preset)}
+                  className="flex items-center gap-1.5 rounded-full bg-status-red/15 text-status-red px-3 py-1.5 text-caption font-semibold cursor-pointer hover:bg-status-red/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={emergencyConfirm.isOpen}
+        title={`Send "${emergencyConfirm.pending?.title}" to every display?`}
+        description="This takes over every connected screen immediately."
+        confirmLabel="Send Emergency"
+        tone="danger"
+        onConfirm={() => {
+          const preset = emergencyConfirm.pending;
+          if (preset) {
+            sendBroadcast({
+              type: "emergency",
+              title: preset.title,
+              message: preset.message,
+              icon: null,
+              priority: 3,
+              target: { kind: "all" },
+              expiresInMinutes: null,
+              durationSeconds: null,
+              acknowledgementRequired: true,
+              persistent: true,
+              scheduledFor: null,
+            });
+            toast.success("Emergency broadcast sent");
+          }
+          emergencyConfirm.cancel();
+        }}
+        onCancel={emergencyConfirm.cancel}
+      />
     </div>
   );
 }
