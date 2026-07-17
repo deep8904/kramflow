@@ -21,12 +21,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "id is required" }, { status: 400 });
   }
 
+  // use-time-sync.ts's latencyMs is roundTripMs/2 — often a non-integer
+  // (e.g. 22.5) — but latency_ms is an `integer` column, which Postgres
+  // rejects a fractional value for. Round it; sub-millisecond precision
+  // isn't meaningful here anyway.
+  const latencyMs = typeof body.latencyMs === "number" ? Math.round(body.latencyMs) : null;
+
   const supabase = supabaseAdmin();
   const { data: existing } = await supabase.from("display_registry").select("*").eq("id", id).maybeSingle();
 
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { last_seen_at: now };
-  if (typeof body.latencyMs === "number" || body.latencyMs === null) patch.latency_ms = body.latencyMs;
+  if (typeof body.latencyMs === "number" || body.latencyMs === null) patch.latency_ms = latencyMs;
   if (typeof body.name === "string") patch.name = body.name;
   if (typeof body.type === "string") patch.type = body.type;
   if (body.room !== undefined) patch.room = body.room;
@@ -42,7 +48,7 @@ export async function POST(request: Request) {
       room: body.room ?? null,
       registered_at: now,
       last_seen_at: now,
-      latency_ms: typeof body.latencyMs === "number" ? body.latencyMs : null,
+      latency_ms: latencyMs,
     });
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
