@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Plus, Upload, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, Plus, Upload, Pencil, Trash2, CalendarPlus } from "lucide-react";
 import { useSessions } from "@/lib/use-sessions";
 import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/tv/section-label";
 import { ProgramForm } from "@/components/forms/program-form";
+import { SessionForm } from "@/components/forms/session-form";
 import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import type { ProgramInput } from "@/lib/validation/program";
 import type { ParsedProgram, ParsedSession } from "@/lib/parse-cuesheet";
+import type { Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface ProgramRow extends ParsedProgram {
@@ -54,8 +56,11 @@ export default function CueSheetPage() {
 
   const [rows, setRows] = useState<ProgramRow[] | null>(null);
   const [loadingRows, setLoadingRows] = useState(false);
-  const [panel, setPanel] = useState<"none" | "upload" | "create" | { edit: ProgramRow }>("none");
+  const [panel, setPanel] = useState<
+    "none" | "upload" | "create" | "create-session" | { edit: ProgramRow } | { editSession: Session }
+  >("none");
   const deleteConfirm = useConfirmDialog<ProgramRow>();
+  const deleteSessionConfirm = useConfirmDialog<Session>();
 
   async function loadRows(sessionId: string) {
     setLoadingRows(true);
@@ -90,6 +95,18 @@ export default function CueSheetPage() {
     loadRows(activeSessionId);
   }
 
+  async function handleDeleteSessionConfirmed() {
+    const target = deleteSessionConfirm.pending;
+    if (!target) return;
+    await fetch(`/api/sessions/${target.id}`, { method: "DELETE" });
+    toast.success("Session deleted");
+    deleteSessionConfirm.cancel();
+    if (activeSessionId === target.id) {
+      setSelectedSessionId(null);
+      setRows(null);
+    }
+  }
+
   const sessionOptions = sessions.map((s) => ({ id: s.id, label: `${s.dayLabel} • ${s.sessionLabel}` }));
 
   return (
@@ -109,7 +126,7 @@ export default function CueSheetPage() {
             <Upload className="h-4 w-4" strokeWidth={2} />
             Import Excel
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setPanel("create")}>
+          <Button variant="primary" size="sm" onClick={() => setPanel("create")} disabled={!activeSessionId}>
             <Plus className="h-4 w-4" strokeWidth={2} />
             Add item
           </Button>
@@ -118,26 +135,80 @@ export default function CueSheetPage() {
 
       <div className="px-6 py-6 max-w-4xl mx-auto flex flex-col gap-8">
         <div>
-          <SectionLabel>Session</SectionLabel>
+          <div className="flex items-center justify-between">
+            <SectionLabel>Session</SectionLabel>
+            <Button variant="ghost" size="sm" onClick={() => setPanel("create-session")}>
+              <CalendarPlus className="h-4 w-4" strokeWidth={2} />
+              New session
+            </Button>
+          </div>
           <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+            {sessions.length === 0 && (
+              <p className="text-body text-muted py-2">
+                No sessions yet. Add one to start building the cue sheet.
+              </p>
+            )}
             {sessions.map((s) => (
-              <button
+              <div
                 key={s.id}
-                type="button"
-                onClick={() => {
-                  setSelectedSessionId(s.id);
-                  loadRows(s.id);
-                }}
                 className={cn(
-                  "shrink-0 rounded-full px-3 py-1.5 text-caption font-medium cursor-pointer transition-colors",
+                  "group shrink-0 flex items-center gap-1 rounded-full pl-3 pr-1.5 py-1.5 text-caption font-medium transition-colors",
                   s.id === activeSessionId ? "bg-card text-primary" : "text-muted-2 hover:text-primary"
                 )}
               >
-                {s.dayLabel} • {s.sessionLabel}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSessionId(s.id);
+                    loadRows(s.id);
+                  }}
+                  className="cursor-pointer"
+                >
+                  {s.dayLabel} • {s.sessionLabel}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Edit session"
+                  onClick={() => setPanel({ editSession: s })}
+                  className="opacity-0 group-hover:opacity-100 hover:text-primary cursor-pointer p-1 shrink-0 transition-opacity"
+                >
+                  <Pencil className="h-3 w-3" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Delete session"
+                  onClick={() => deleteSessionConfirm.request(s)}
+                  className="opacity-0 group-hover:opacity-100 hover:text-status-red cursor-pointer p-1 shrink-0 transition-opacity"
+                >
+                  <Trash2 className="h-3 w-3" strokeWidth={2} />
+                </button>
+              </div>
             ))}
           </div>
         </div>
+
+        {panel === "create-session" && (
+          <SessionForm
+            nextSortOrder={sessions.length}
+            onSaved={() => {
+              setPanel("none");
+              toast.success("Session added");
+            }}
+            onCancel={() => setPanel("none")}
+          />
+        )}
+
+        {typeof panel === "object" && "editSession" in panel && (
+          <SessionForm
+            session={panel.editSession}
+            nextSortOrder={sessions.length}
+            onSaved={() => {
+              setPanel("none");
+              toast.success("Session updated");
+            }}
+            onCancel={() => setPanel("none")}
+          />
+        )}
 
         {panel === "upload" && (
           <UploadPanel
@@ -235,6 +306,16 @@ export default function CueSheetPage() {
         tone="danger"
         onConfirm={handleDeleteConfirmed}
         onCancel={deleteConfirm.cancel}
+      />
+
+      <ConfirmDialog
+        open={deleteSessionConfirm.isOpen}
+        title={`Delete "${deleteSessionConfirm.pending?.dayLabel} • ${deleteSessionConfirm.pending?.sessionLabel}"?`}
+        description="This deletes the session and every item in it. This can't be undone."
+        confirmLabel="Delete Session"
+        tone="danger"
+        onConfirm={handleDeleteSessionConfirmed}
+        onCancel={deleteSessionConfirm.cancel}
       />
     </main>
   );

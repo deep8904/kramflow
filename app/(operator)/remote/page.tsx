@@ -67,8 +67,10 @@ export default function RemotePage() {
 
   if (!session) {
     return (
-      <main className="h-screen w-screen flex items-center justify-center bg-background">
-        <p className="text-body text-muted">No session found.</p>
+      <main className="h-screen w-screen flex items-center justify-center bg-background px-6 text-center">
+        <p className="text-body text-muted">
+          {sessions.length === 0 ? "No sessions yet — add one from the Operator dashboard." : "Select a session to get started."}
+        </p>
       </main>
     );
   }

@@ -114,7 +114,19 @@ export default function OperatorPage() {
           </div>
         </div>
       ) : (
-        <p className="text-body text-muted px-4 sm:px-6 xl:px-12 py-8">No session found.</p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 sm:px-6 xl:px-12 py-16">
+          <p className="text-body text-muted">
+            {sessions.length === 0 ? "No sessions yet." : "Select a session to get started."}
+          </p>
+          {sessions.length === 0 && (
+            <Link href="/operator/cue-sheet">
+              <Button variant="primary" size="sm">
+                <FileSpreadsheet className="h-4 w-4" strokeWidth={2} />
+                Go to Cue Sheet
+              </Button>
+            </Link>
+          )}
+        </div>
       )}
 
       {session && (
