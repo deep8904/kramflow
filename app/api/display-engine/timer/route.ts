@@ -30,9 +30,14 @@ export async function PATCH(request: Request) {
   }
 
   const supabase = supabaseAdmin();
-  const { data: row, error: fetchError } = await supabase.from("display_state").select("timer").eq("id", 1).single();
+  const { data: row, error: fetchError } = await supabase
+    .from("display_state")
+    .select("timer, timer_version")
+    .eq("id", 1)
+    .single();
   if (fetchError) return NextResponse.json({ ok: false, error: fetchError.message }, { status: 500 });
   const timer = row.timer as TimerState;
+  const timerVersion = row.timer_version as number;
 
   let next: TimerState;
   switch (action) {
@@ -78,7 +83,18 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: "Unknown action" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("display_state").update({ timer: next }).eq("id", 1);
+  // Same optimistic-concurrency check as app/api/live/route.ts, scoped to
+  // timer_version so a concurrent Hold/Speaker-Ready write (a different
+  // column on the same row) never falsely conflicts with a timer action.
+  const { data: updated, error } = await supabase
+    .from("display_state")
+    .update({ timer: next, timer_version: timerVersion + 1 })
+    .eq("id", 1)
+    .eq("timer_version", timerVersion)
+    .select("timer_version");
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ ok: false, error: "Conflict — timer changed, please retry" }, { status: 409 });
+  }
   return NextResponse.json({ ok: true });
 }

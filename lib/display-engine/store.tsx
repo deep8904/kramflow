@@ -377,13 +377,19 @@ async function postJson(url: string, body: unknown) {
   }
 }
 
-async function patchJson(url: string, body: unknown) {
+// Retries once on 409 — app/api/display-engine/timer/route.ts (the only
+// route on this path with an optimistic-concurrency check today) returns
+// that when timer_version changed between its read and write. Same
+// reasoning as lib/store.tsx's sendAction: resending succeeds once the
+// other write has landed, and a repeat conflict is vanishingly unlikely.
+async function patchJson(url: string, body: unknown, attempt = 0): Promise<Response | null> {
   try {
     const res = await fetch(url, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    if (res.status === 409 && attempt < 2) return patchJson(url, body, attempt + 1);
     if (!res.ok) console.error("[display-engine] PATCH failed:", url, res.status);
     return res;
   } catch (err) {

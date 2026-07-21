@@ -101,13 +101,20 @@ function getServerSnapshot(): LiveState {
   return initialState;
 }
 
-async function sendAction(body: Record<string, unknown>) {
+// Retries once on 409 — app/api/live/route.ts returns that when its
+// optimistic-concurrency check finds live_state changed between its read
+// and write (two near-simultaneous actions). The route always recomputes
+// from a fresh read, so simply resending the same action succeeds once the
+// other write has landed; a second conflict in a row is astronomically
+// unlikely for single-operator-driven actions, so this doesn't loop.
+async function sendAction(body: Record<string, unknown>, attempt = 0): Promise<void> {
   try {
     const res = await fetch("/api/live", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    if (res.status === 409 && attempt < 2) return sendAction(body, attempt + 1);
     if (!res.ok) console.error("[store] action failed:", body.action, res.status);
   } catch (err) {
     console.error("[store] action failed:", body.action, err);

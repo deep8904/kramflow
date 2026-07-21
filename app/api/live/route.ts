@@ -17,6 +17,7 @@ interface LiveStateRow {
   alert: Alert | null;
   progress_by_session: Record<string, { currentOrder: number | null; startedAt: string | null }>;
   notes_overrides: Record<string, string>;
+  version: number;
 }
 
 async function logActivity(action: string, detail: string) {
@@ -191,9 +192,22 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: "Unknown action" }, { status: 400 });
   }
 
-  const { error: updateError } = await supabase.from("live_state").update(patch).eq("id", 1);
+  // Optimistic concurrency: only write if `version` still matches what we
+  // read at the top of this request. If another PATCH landed in between
+  // (two near-simultaneous actions), this update() matches zero rows
+  // instead of silently overwriting that other write — the client retries
+  // once (lib/store.tsx's sendAction) rather than losing an update.
+  const { data: updated, error: updateError } = await supabase
+    .from("live_state")
+    .update({ ...patch, version: current.version + 1 })
+    .eq("id", 1)
+    .eq("version", current.version)
+    .select("version");
   if (updateError) {
     return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+  }
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ ok: false, error: "Conflict — live state changed, please retry" }, { status: 409 });
   }
 
   await logActivity(action, detail);
