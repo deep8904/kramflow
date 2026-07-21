@@ -77,12 +77,15 @@ export async function POST(request: Request) {
   const { error: sessionsError } = await supabase.from("sessions").upsert(parsed.sessions, { onConflict: "id" });
   if (sessionsError) return NextResponse.json({ ok: false, error: sessionsError.message }, { status: 500 });
 
+  // Atomic: replace_session_programs (supabase/schema.sql) deletes and
+  // re-inserts in one transaction, so a failure partway through can't leave
+  // a session with zero programs — see the function's own comment.
   const sessionIds = [...new Set(parsed.programs.map((p) => p.session_id))];
-  const { error: deleteError } = await supabase.from("programs").delete().in("session_id", sessionIds);
-  if (deleteError) return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });
-
-  const { error: insertError } = await supabase.from("programs").insert(parsed.programs);
-  if (insertError) return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
+  const { error: replaceError } = await supabase.rpc("replace_session_programs", {
+    p_session_ids: sessionIds,
+    p_programs: parsed.programs,
+  });
+  if (replaceError) return NextResponse.json({ ok: false, error: replaceError.message }, { status: 500 });
 
   await supabase.from("activity_log").insert({
     action: "cueSheetUpload",

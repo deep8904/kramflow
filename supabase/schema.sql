@@ -56,6 +56,51 @@ create index if not exists programs_session_id_idx on programs(session_id);
 create unique index if not exists programs_session_sort_order_idx on programs(session_id, sort_order);
 
 -- ---------------------------------------------------------------------------
+-- replace_session_programs — atomic "delete this session's programs, then
+-- insert the new set" for the cue-sheet upload route and scripts/seed.ts.
+-- Both previously did this as two separate round trips (delete, then
+-- insert); if the insert failed after the delete had already committed
+-- (a transient error, a row that fails a check constraint the dry-run
+-- validation didn't catch, etc.), the affected sessions were left with
+-- zero programs until a successful re-upload — a real data-loss window.
+-- A single function call runs in one transaction: either both steps
+-- happen or neither does.
+--
+-- id/created_at/updated_at/updated_by are deliberately not in the column
+-- list below — they're left for the table's own defaults, exactly as the
+-- old two-step insert() already relied on (parsed rows never carry ids).
+-- ---------------------------------------------------------------------------
+create or replace function replace_session_programs(p_session_ids text[], p_programs jsonb)
+returns void
+language plpgsql
+as $$
+begin
+  delete from programs where session_id = any(p_session_ids);
+
+  insert into programs (
+    sort_order, session_id, section_label, type, name, description,
+    presenter, presenter_requirement, presenter_contact, duration,
+    start_time, end_time, audio_mics, audio_track, video_sidescreen,
+    backdrop, video_ppt_needed, hall_lights, stage_lights, camera_angle,
+    props, curtains, remarks, status, color_tag
+  )
+  select
+    sort_order, session_id, section_label, type, name, description,
+    presenter, presenter_requirement, presenter_contact, duration,
+    start_time, end_time, audio_mics, audio_track, video_sidescreen,
+    backdrop, video_ppt_needed, hall_lights, stage_lights, camera_angle,
+    props, curtains, remarks, status, color_tag
+  from jsonb_to_recordset(p_programs) as x(
+    sort_order integer, session_id text, section_label text, type text, name text, description text,
+    presenter text, presenter_requirement text, presenter_contact text, duration integer,
+    start_time text, end_time text, audio_mics boolean, audio_track boolean, video_sidescreen text,
+    backdrop boolean, video_ppt_needed boolean, hall_lights text, stage_lights text, camera_angle text,
+    props text, curtains text, remarks text, status text, color_tag text
+  );
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- live_state — singleton row, kept small by design (see ARCHITECTURE.md)
 -- ---------------------------------------------------------------------------
 create table if not exists live_state (
@@ -66,10 +111,21 @@ create table if not exists live_state (
   progress_by_session jsonb not null default '{}'::jsonb,
   notes_overrides jsonb not null default '{}'::jsonb,
   presenter_state jsonb not null default '{"note": null, "flashAt": null}'::jsonb,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  -- Optimistic concurrency: app/api/live/route.ts reads this row, computes
+  -- a patch, then writes it back as two separate round trips — without a
+  -- version check, two near-simultaneous requests (a fast double-tap on
+  -- Next, or Operator + Remote firing close together) can both read the
+  -- same starting state and the second write silently clobbers the
+  -- first's. The route bumps this by 1 on every successful write and
+  -- requires it to still match at write time; a mismatch means someone
+  -- else's write landed first, so the route returns 409 instead of
+  -- silently overwriting.
+  version integer not null default 0
 );
 
 insert into live_state (id) values (1) on conflict (id) do nothing;
+alter table live_state add column if not exists version integer not null default 0;
 
 -- ---------------------------------------------------------------------------
 -- activity_log — short operator action history, not analytics (see plan)
@@ -96,10 +152,20 @@ create table if not exists display_state (
   hold jsonb not null default '{"active":false,"message":"Please Stand By","subMessage":null,"continueClock":false,"activatedAt":null}'::jsonb,
   timer jsonb not null default '{"mode":"program","source":"auto","startedAt":null,"durationSeconds":300,"pausedAt":null,"adjustmentSeconds":0,"thresholds":{"yellowAt":300,"orangeAt":60,"redAt":0,"criticalAfter":60}}'::jsonb,
   speaker_ready jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  -- Same optimistic-concurrency reasoning as live_state.version, scoped to
+  -- just the timer column: app/api/display-engine/timer/route.ts's adjust/
+  -- pause/resume/reset actions all depend on the timer value it read at
+  -- the start of the request, so two near-simultaneous timer PATCHes can
+  -- race the same way live_state's next/previous can. Hold and
+  -- speaker_ready each update their own column independently and don't
+  -- share this counter — a concurrent Hold toggle should never fail a
+  -- Timer adjustment's version check just because they hit the same row.
+  timer_version integer not null default 0
 );
 
 insert into display_state (id) values (1) on conflict (id) do nothing;
+alter table display_state add column if not exists timer_version integer not null default 0;
 
 -- ---------------------------------------------------------------------------
 -- display_registry — one row per connected display (Presenter/AV/Green

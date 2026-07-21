@@ -29,14 +29,15 @@ async function main() {
 
   // Replace this session's programs wholesale rather than upserting by a
   // synthetic id — the parser doesn't assign stable per-row ids (order can
-  // shift between spreadsheet edits), so "delete then insert" per session is
-  // simpler and correct for a one-time/occasional seed.
+  // shift between spreadsheet edits). replace_session_programs (supabase/
+  // schema.sql) does the delete + insert atomically in one transaction, so
+  // a failure partway through can't leave a session with zero programs.
   const sessionIds = [...new Set(programs.map((p) => p.session_id))];
-  const { error: deleteError } = await supabase.from("programs").delete().in("session_id", sessionIds);
-  if (deleteError) throw deleteError;
-
-  const { error: programsError } = await supabase.from("programs").insert(programs);
-  if (programsError) throw programsError;
+  const { error: replaceError } = await supabase.rpc("replace_session_programs", {
+    p_session_ids: sessionIds,
+    p_programs: programs,
+  });
+  if (replaceError) throw replaceError;
 
   // Only set a default active session if live_state has none yet — never
   // clobber an operator's actual live progress on a re-seed.
