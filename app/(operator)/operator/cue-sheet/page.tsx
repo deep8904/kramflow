@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronLeft, Plus, Upload, Pencil, Trash2, CalendarPlus } from "lucide-react";
 import { useSessions } from "@/lib/use-sessions";
 import { Button } from "@/components/ui/button";
-import { SectionLabel } from "@/components/tv/section-label";
 import { ProgramForm } from "@/components/forms/program-form";
 import { SessionForm } from "@/components/forms/session-form";
 import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -111,40 +110,43 @@ export default function CueSheetPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <header className="flex items-center justify-between px-6 py-5 border-b border-white/5">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between gap-4 px-5 sm:px-7 py-3.5 border-b border-[var(--color-border)] bg-background/95 backdrop-blur-sm sticky top-0 z-20">
+        <div className="flex items-center gap-3 min-w-0">
           <Link href="/operator">
             <Button variant="ghost" size="sm">
-              <ChevronLeft className="h-4 w-4" strokeWidth={2} />
-              Operator
+              <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
             </Button>
           </Link>
-          <h1 className="text-title text-primary">Cue Sheet</h1>
+          <span className="h-4 w-px bg-[var(--color-border)]" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-tertiary font-medium">KramFlow</p>
+            <h1 className="text-[17px] font-semibold text-primary tracking-tight mt-0.5">Cue Sheet</h1>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => setPanel("upload")}>
-            <Upload className="h-4 w-4" strokeWidth={2} />
-            Import Excel
+            <Upload className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Import Excel</span>
           </Button>
           <Button variant="primary" size="sm" onClick={() => setPanel("create")} disabled={!activeSessionId}>
-            <Plus className="h-4 w-4" strokeWidth={2} />
+            <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
             Add item
           </Button>
         </div>
       </header>
 
-      <div className="px-6 py-6 max-w-4xl mx-auto flex flex-col gap-8">
+      <div className="px-5 sm:px-7 py-7 max-w-4xl mx-auto flex flex-col gap-8">
         <div>
           <div className="flex items-center justify-between">
-            <SectionLabel>Session</SectionLabel>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">Session</p>
             <Button variant="ghost" size="sm" onClick={() => setPanel("create-session")}>
-              <CalendarPlus className="h-4 w-4" strokeWidth={2} />
+              <CalendarPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
               New session
             </Button>
           </div>
           <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
             {sessions.length === 0 && (
-              <p className="text-body text-muted py-2">
+              <p className="text-[13px] text-tertiary py-2">
                 No sessions yet. Add one to start building the cue sheet.
               </p>
             )}
@@ -152,8 +154,10 @@ export default function CueSheetPage() {
               <div
                 key={s.id}
                 className={cn(
-                  "group shrink-0 flex items-center gap-1 rounded-full pl-3 pr-1.5 py-1.5 text-caption font-medium transition-colors",
-                  s.id === activeSessionId ? "bg-card text-primary" : "text-muted-2 hover:text-primary"
+                  "group shrink-0 flex items-center gap-1 rounded-lg pl-3 pr-1.5 py-1.5 text-[12px] font-medium transition-colors border",
+                  s.id === activeSessionId
+                    ? "bg-surface-1 border-[var(--color-border-strong)] text-primary"
+                    : "border-transparent text-tertiary hover:text-primary hover:bg-surface-1 hover:border-[var(--color-border)]"
                 )}
               >
                 <button
@@ -222,7 +226,7 @@ export default function CueSheetPage() {
         )}
 
         {panel === "create" && activeSessionId && (
-          <div className="rounded-2xl bg-card p-6">
+          <div className="rounded-2xl bg-surface-1 border border-[var(--color-border)] p-6">
             <ProgramForm
               sessionId={activeSessionId}
               sessionOptions={sessionOptions}
@@ -237,7 +241,7 @@ export default function CueSheetPage() {
         )}
 
         {typeof panel === "object" && "edit" in panel && (
-          <div className="rounded-2xl bg-card p-6">
+          <div className="rounded-2xl bg-surface-1 border border-[var(--color-border)] p-6">
             <ProgramForm
               sessionId={panel.edit.session_id}
               sessionOptions={sessionOptions}
@@ -255,25 +259,27 @@ export default function CueSheetPage() {
 
         {panel === "none" && (
           <div>
-            <SectionLabel>Items</SectionLabel>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">Items</p>
             <div className="mt-3 flex flex-col">
-              {loadingRows && <p className="text-body text-muted py-4">Loading…</p>}
+              {loadingRows && <p className="text-[13px] text-tertiary py-4">Loading…</p>}
               {!loadingRows && rows === null && (
-                <p className="text-body text-muted py-4">Select a session to view its items.</p>
+                <p className="text-[13px] text-tertiary py-4">Select a session to view its items.</p>
               )}
-              {!loadingRows && rows?.length === 0 && <p className="text-body text-muted py-4">No items yet.</p>}
+              {!loadingRows && rows?.length === 0 && (
+                <p className="text-[13px] text-tertiary py-4">No items yet.</p>
+              )}
               {rows?.map((row) => (
                 <div
                   key={row.id}
-                  className="flex items-center gap-3 py-3 px-3 rounded-lg border-b border-white/5 hover:bg-card transition-colors"
+                  className="flex items-center gap-3 py-3 px-3 rounded-lg border-b border-[var(--color-border)] last:border-0 hover:bg-surface-1 transition-colors"
                 >
-                  <span className="w-8 text-caption text-muted-2 tabular-nums shrink-0">{row.sort_order}</span>
+                  <span className="w-8 text-[11px] text-tertiary tabular shrink-0">{row.sort_order}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-body text-primary truncate">{row.name}</p>
-                    {row.presenter && <p className="text-caption text-muted-2 truncate">{row.presenter}</p>}
+                    <p className="text-[14px] text-primary truncate">{row.name}</p>
+                    {row.presenter && <p className="text-[11px] text-secondary truncate mt-0.5">{row.presenter}</p>}
                   </div>
                   {row.status !== "confirmed" && (
-                    <span className="text-caption text-muted-2 uppercase tracking-wide shrink-0">{row.status}</span>
+                    <span className="text-[10px] text-tertiary uppercase tracking-wider font-medium shrink-0">{row.status}</span>
                   )}
                   <button
                     type="button"
@@ -366,8 +372,8 @@ function UploadPanel({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
   }
 
   return (
-    <div className="rounded-2xl bg-card p-6 flex flex-col gap-4">
-      <SectionLabel>Import Excel</SectionLabel>
+    <div className="rounded-2xl bg-surface-1 border border-[var(--color-border)] p-6 flex flex-col gap-4">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">Import Excel</p>
       <input
         type="file"
         accept=".xlsx"
@@ -375,10 +381,10 @@ function UploadPanel({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
           setFile(e.target.files?.[0] ?? null);
           setPreview(null);
         }}
-        className="text-body text-muted file:mr-4 file:h-9 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-background file:font-medium file:cursor-pointer cursor-pointer"
+        className="text-[13px] text-secondary file:mr-4 file:h-8 file:px-3.5 file:rounded-lg file:border-0 file:bg-surface-2 file:text-primary file:text-[12px] file:font-medium file:cursor-pointer cursor-pointer"
       />
 
-      {error && <p className="text-caption text-status-red">{error}</p>}
+      {error && <p className="text-[12px] text-status-red">{error}</p>}
 
       {!preview && (
         <div className="flex items-center gap-3">
@@ -393,14 +399,14 @@ function UploadPanel({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
 
       {preview && (
         <div className="flex flex-col gap-4">
-          <p className="text-body text-muted">
+          <p className="text-[13px] text-secondary">
             Parsed {preview.sessions.length} sessions, {preview.programs.length} items.
             {preview.errors.length > 0 && (
               <span className="text-status-red"> {preview.errors.length} rows have validation errors.</span>
             )}
           </p>
           {preview.errors.length > 0 && (
-            <ul className="text-caption text-status-red flex flex-col gap-1 max-h-40 overflow-y-auto">
+            <ul className="text-[11px] text-status-red flex flex-col gap-1 max-h-40 overflow-y-auto">
               {preview.errors.map((e) => (
                 <li key={e.index}>
                   Row {e.index + 1} ({e.name || "untitled"}): {e.errors.join(", ")}

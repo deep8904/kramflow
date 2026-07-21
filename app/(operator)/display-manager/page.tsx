@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Camera, Eye, Maximize, RotateCw, Send, Trash2, Wifi, WifiOff, X } from "lucide-react";
+import { ArrowLeft, Camera, Eye, Lock, Maximize, RotateCw, Send, Trash2, Wifi, WifiOff, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/components/auth/auth-context";
 import { useDisplayEngine, useTransportStatus } from "@/lib/display-engine/store";
@@ -180,12 +180,12 @@ export default function DisplayManagerPage() {
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8">
           <div className="w-full max-w-5xl">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-body text-primary font-medium">{previewing.name} — live preview</p>
+              <p className="text-[14px] text-primary font-medium">{previewing.name} — live preview</p>
               <Button variant="ghost" size="sm" onClick={() => setPreviewing(null)} aria-label="Close preview">
                 <X className="h-4 w-4" strokeWidth={2} />
               </Button>
             </div>
-            <div className="rounded-card overflow-hidden bg-background aspect-video">
+            <div className="rounded-xl overflow-hidden bg-background aspect-video border border-[var(--color-border)]">
               <iframe
                 src={routeFor(previewing.type)}
                 title={`${previewing.name} preview`}
@@ -427,10 +427,10 @@ function TestMessageDialog({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="w-full max-w-sm rounded-card bg-card p-6"
+            className="w-full max-w-sm rounded-2xl bg-surface-1 border border-[var(--color-border-strong)] p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-subtitle text-primary">Send a test message</h2>
+            <h2 className="text-[17px] font-semibold text-primary tracking-tight">Send a test message</h2>
             <Input
               autoFocus
               value={text}

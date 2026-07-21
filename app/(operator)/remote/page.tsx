@@ -80,20 +80,20 @@ export default function RemotePage() {
       {/* Compact header — session context, not a full navigation bar */}
       <div className="shrink-0 px-6 pt-6 pb-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-caption text-muted-2 truncate min-w-0">
-            {session.dayLabel} • {session.sessionLabel}
+          <p className="text-[12px] text-tertiary truncate min-w-0">
+            {session.dayLabel} · {session.sessionLabel}
           </p>
           <div className="flex items-center gap-3 shrink-0">
-            <p className="text-caption text-muted-2 tabular-nums">
+            <p className="text-[12px] text-tertiary tabular">
               {Math.min(currentOrder ?? 0, max)} / {max}
             </p>
             <button
               type="button"
               onClick={lock}
               aria-label="Lock"
-              className="text-muted-2 hover:text-primary cursor-pointer p-1 -m-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
+              className="text-tertiary hover:text-primary cursor-pointer p-1 -m-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-lg transition-colors"
             >
-              <Lock className="h-4 w-4" strokeWidth={2} />
+              <Lock className="h-4 w-4" strokeWidth={1.5} />
             </button>
           </div>
         </div>
@@ -105,9 +105,9 @@ export default function RemotePage() {
               onClick={() => handleSessionClick(s.id, `${s.dayLabel} ${s.sessionLabel}`)}
               aria-current={s.id === state.activeSessionId ? "true" : undefined}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-caption font-medium cursor-pointer transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                s.id === state.activeSessionId ? "bg-card text-primary" : "text-muted-2"
+                "shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-medium cursor-pointer transition-colors",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                s.id === state.activeSessionId ? "bg-surface-1 border border-[var(--color-border-strong)] text-primary" : "text-tertiary"
               )}
             >
               {s.dayLabel}
@@ -119,21 +119,21 @@ export default function RemotePage() {
       {/* Main focus — current + next, huge countdown */}
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-6 text-center overflow-y-auto">
         {currentOrder === null ? (
-          <p className="text-body text-muted">Not started</p>
+          <p className="text-[15px] text-tertiary">Not started</p>
         ) : isFinished ? (
-          <p className="text-body text-muted">Session finished</p>
+          <p className="text-[15px] text-tertiary">Session finished</p>
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <p className="text-caption uppercase tracking-wide text-muted-2">Now</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">Now</p>
               {state.pausedAt && <HoldBadge />}
             </div>
-            <p className="text-title text-primary mt-2 leading-tight">{live?.title}</p>
-            {live?.presenter && <p className="text-body text-muted mt-1">{live.presenter}</p>}
+            <p className="text-[2rem] font-semibold text-primary mt-2 leading-tight tracking-tight text-balance">{live?.title}</p>
+            {live?.presenter && <p className="text-[15px] text-secondary mt-1.5">{live.presenter}</p>}
 
             {live && live.type === "item" && live.durationMinutes > 0 && (
               <div className="mt-8 w-full max-w-xs">
-                <p className="text-hero text-primary tabular-nums">{countdown.label}</p>
+                <p className="text-[5.25rem] font-semibold text-primary tabular tracking-tight leading-none">{countdown.label}</p>
                 <div className="mt-4">
                   <ProgressBar
                     fraction={countdown.fraction}
@@ -144,9 +144,9 @@ export default function RemotePage() {
             )}
 
             {next_ && (
-              <div className="mt-10 pt-6 border-t border-white/5 w-full max-w-xs">
-                <p className="text-caption uppercase tracking-wide text-muted-2">Next</p>
-                <p className="text-body text-primary mt-1.5">{next_.title}</p>
+              <div className="mt-10 pt-6 border-t border-[var(--color-border)] w-full max-w-xs">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">Next</p>
+                <p className="text-[15px] text-secondary mt-1.5">{next_.title}</p>
               </div>
             )}
           </>
@@ -386,9 +386,9 @@ function QuickPanel({
   const [broadcastValue, setBroadcastValue] = useState("");
 
   return (
-    <div className="rounded-2xl bg-card p-5 mb-3">
+    <div className="rounded-2xl bg-surface-1 border border-[var(--color-border)] p-5 mb-3">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-caption uppercase tracking-wide text-muted-2">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">
           {panel === "jump"
             ? "Jump to Item"
             : panel === "alert"
@@ -400,7 +400,7 @@ function QuickPanel({
         <button
           type="button"
           onClick={onClose}
-          className="text-muted-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
+          className="text-tertiary hover:text-primary cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-lg p-1 transition-colors"
           aria-label="Close"
         >
           <X className="h-4 w-4" strokeWidth={2} />
@@ -418,7 +418,7 @@ function QuickPanel({
             value={jumpValue}
             onChange={(e) => setJumpValue(e.target.value)}
             aria-label="Item number"
-            className="flex-1 h-14 rounded-xl bg-background border border-white/10 px-4 text-xl tabular-nums text-primary outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex-1 h-14 rounded-xl bg-surface-2 border border-[var(--color-border)] px-4 text-xl tabular text-primary outline-none focus:border-[var(--color-border-strong)] focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background transition-colors"
           />
           <button
             type="button"
@@ -462,7 +462,7 @@ function QuickPanel({
             value={notesValue}
             onChange={(e) => setNotesValue(e.target.value)}
             aria-label="Stage notes"
-            className="flex-1 rounded-xl bg-background border border-white/10 px-4 py-3 text-body text-primary outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background resize-none"
+            className="flex-1 rounded-xl bg-surface-2 border border-[var(--color-border)] px-4 py-3 text-[15px] text-primary outline-none focus:border-[var(--color-border-strong)] focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background resize-none transition-colors placeholder:text-tertiary"
           />
           <button
             type="button"
@@ -484,7 +484,7 @@ function QuickPanel({
               value={broadcastValue}
               onChange={(e) => setBroadcastValue(e.target.value)}
               aria-label="Broadcast message"
-              className="flex-1 h-14 rounded-xl bg-background border border-white/10 px-4 text-body text-primary outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex-1 h-14 rounded-xl bg-surface-2 border border-[var(--color-border)] px-4 text-[15px] text-primary outline-none focus:border-[var(--color-border-strong)] focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background transition-colors placeholder:text-tertiary"
             />
             <button
               type="button"
@@ -503,7 +503,7 @@ function QuickPanel({
                 key={preset.label}
                 type="button"
                 onClick={() => onRequestEmergency(preset)}
-                className="flex items-center gap-1.5 rounded-full bg-status-red/15 text-status-red px-3 py-1.5 text-caption font-semibold cursor-pointer"
+                className="flex items-center gap-1.5 rounded-lg bg-status-red/10 border border-status-red/20 text-status-red px-3 py-1.5 text-[11px] font-semibold cursor-pointer hover:bg-status-red/18 transition-colors"
               >
                 <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
                 {preset.label}
