@@ -10,7 +10,8 @@ export function SessionSwitcher() {
   const sessions = useSessions();
   const switchConfirm = useConfirmDialog<{ id: string; label: string }>();
 
-  const currentSessionHasProgress = state.progressBySession[state.activeSessionId]?.currentOrder !== null;
+  const currentSessionHasProgress =
+    state.progressBySession[state.activeSessionId]?.currentOrder !== null;
 
   function handleClick(sessionId: string, label: string) {
     if (sessionId === state.activeSessionId) return;
@@ -21,12 +22,18 @@ export function SessionSwitcher() {
     }
   }
 
+  if (sessions.length === 0) return null;
+
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1">
+    <div className="flex gap-1 overflow-x-auto pb-0.5">
       {sessions.map((s) => {
         const active = s.id === state.activeSessionId;
         const progress = state.progressBySession[s.id];
-        const isLive = progress && progress.currentOrder !== null && progress.currentOrder <= s.items.length;
+        const isLive =
+          progress &&
+          progress.currentOrder !== null &&
+          progress.currentOrder <= s.items.length;
+
         return (
           <button
             key={s.id}
@@ -35,18 +42,37 @@ export function SessionSwitcher() {
             aria-current={active ? "true" : undefined}
             aria-label={`${s.dayLabel} ${s.sessionLabel}${isLive ? " (in progress)" : ""}`}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-2 text-left transition-colors cursor-pointer",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              active ? "bg-card" : "hover:bg-card/60"
+              "shrink-0 rounded-lg px-3.5 py-1.5 text-left transition-all duration-150 cursor-pointer whitespace-nowrap",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              active
+                ? "bg-surface-1 border border-[var(--color-border-strong)]"
+                : "hover:bg-surface-1 border border-transparent"
             )}
           >
             <span className="flex items-center gap-1.5">
-              <span className={cn("text-caption font-medium", active ? "text-primary" : "text-muted")}>
+              <span
+                className={cn(
+                  "text-[11px] font-semibold tracking-wide",
+                  active ? "text-primary" : "text-secondary"
+                )}
+              >
                 {s.dayLabel}
               </span>
-              {isLive && <span className="h-1.5 w-1.5 rounded-full bg-status-green" aria-hidden="true" />}
+              {isLive && (
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-status-green live-pulse"
+                  aria-hidden="true"
+                />
+              )}
             </span>
-            <p className={cn("text-caption", active ? "text-muted" : "text-muted-2")}>{s.sessionLabel}</p>
+            <p
+              className={cn(
+                "text-[10px] mt-0.5",
+                active ? "text-secondary" : "text-tertiary"
+              )}
+            >
+              {s.sessionLabel}
+            </p>
           </button>
         );
       })}

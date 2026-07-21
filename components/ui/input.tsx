@@ -7,7 +7,9 @@ export function Input({
   return (
     <input
       className={cn(
-        "h-10 w-full rounded-lg bg-background border border-white/10 px-3.5 text-[15px] text-primary placeholder:text-muted-2 outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-colors",
+        "h-9 w-full rounded-lg bg-surface-1 border border-[var(--color-border)] px-3 text-[13px] text-primary placeholder:text-tertiary outline-none",
+        "focus:border-[var(--color-border-strong)] focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        "transition-colors",
         className
       )}
       {...props}

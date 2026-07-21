@@ -10,7 +10,6 @@ import { getDisplayStatus } from "@/lib/display-engine/use-register-display";
 import type { DisplayInstance, DisplayType } from "@/lib/display-engine/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SectionLabel } from "@/components/tv/section-label";
 import { ProfileEditor } from "@/components/display-engine/profile-editor";
 import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
@@ -27,7 +26,7 @@ const DISPLAY_TYPES: { value: DisplayType; label: string; route: string }[] = [
 ];
 
 const inputField =
-  "bg-card border border-white/10 rounded-lg px-2.5 py-1.5 text-[14px] text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "bg-surface-2 border border-[var(--color-border)] rounded-lg px-2.5 py-1.5 text-[13px] text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background transition-colors hover:border-[var(--color-border-strong)]";
 
 function routeFor(type: DisplayType): string {
   return DISPLAY_TYPES.find((t) => t.value === type)?.route ?? "/presenter";
@@ -106,42 +105,46 @@ export default function DisplayManagerPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <header className="flex items-center justify-between gap-4 px-4 sm:px-6 xl:px-12 py-4 xl:py-6 border-b border-white/5">
-        <div className="flex items-center gap-4 min-w-0">
+      <header className="flex items-center justify-between gap-4 px-5 sm:px-7 xl:px-10 py-3.5 border-b border-[var(--color-border)] bg-background/95 backdrop-blur-sm sticky top-0 z-20">
+        <div className="flex items-center gap-3 min-w-0">
           <Link href="/operator">
             <Button variant="ghost" size="sm" aria-label="Back to Operator Dashboard">
-              <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+              <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
             </Button>
           </Link>
+          <span className="h-4 w-px bg-[var(--color-border)]" aria-hidden="true" />
           <div className="min-w-0">
-            <p className="text-caption uppercase tracking-wide text-muted-2">KramFlow</p>
-            <h1 className="text-title text-primary mt-1">Display Manager</h1>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-tertiary font-medium">KramFlow</p>
+            <h1 className="text-[17px] font-semibold text-primary tracking-tight mt-0.5">Display Manager</h1>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-2 text-caption text-muted-2">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 text-[11px] text-tertiary">
             {transportStatus === "open" ? (
-              <Wifi className="h-4 w-4 text-status-green" strokeWidth={2} />
+              <Wifi className="h-3.5 w-3.5 text-status-green" strokeWidth={1.5} />
             ) : (
-              <WifiOff className="h-4 w-4 text-status-orange" strokeWidth={2} />
+              <WifiOff className="h-3.5 w-3.5 text-status-orange" strokeWidth={1.5} />
             )}
-            {transportStatus === "open" ? "Sync connected" : transportStatus}
+            <span className="hidden sm:inline">{transportStatus === "open" ? "Connected" : transportStatus}</span>
           </span>
-          <Button variant="ghost" size="sm" onClick={lock}>
-            Lock
+          <Button variant="ghost" size="sm" onClick={lock} className="text-tertiary hover:text-primary">
+            <Lock className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Lock</span>
           </Button>
         </div>
       </header>
 
-      <div className="px-4 sm:px-6 xl:px-12 py-8">
-        <SectionLabel>Connected Displays ({displays.length})</SectionLabel>
+      <div className="px-5 sm:px-7 xl:px-10 py-8">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium mb-5">
+          Connected Displays ({displays.length})
+        </p>
 
         {displays.length === 0 ? (
-          <p className="text-body text-muted-2 mt-6">
+          <p className="text-[13px] text-tertiary mt-4">
             No displays have registered yet. Open a display route (e.g. /presenter) on a device to see it here.
           </p>
         ) : (
-          <div className="mt-5 flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             {displays.map((display) => {
               const status = getDisplayStatus(display, now);
               return (
@@ -282,11 +285,14 @@ function DisplayRow({
   }
 
   return (
-    <div className="rounded-card bg-card px-6 py-5">
+    <div className="rounded-xl bg-surface-1 border border-[var(--color-border)] px-5 py-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <span
-            className={cn("h-2.5 w-2.5 rounded-full shrink-0", status === "online" ? "bg-status-green" : "bg-status-red")}
+            className={cn(
+              "h-2 w-2 rounded-full shrink-0",
+              status === "online" ? "bg-status-green live-pulse" : "bg-tertiary/40"
+            )}
             title={status}
           />
           <input
@@ -299,9 +305,16 @@ function DisplayRow({
             aria-label="Display name"
           />
         </div>
-        <div className="flex items-center gap-4 text-caption text-muted-2 shrink-0">
-          <span className="uppercase tracking-wide">{status}</span>
-          <span className="tabular-nums">{display.latencyMs !== null ? `${Math.round(display.latencyMs)}ms` : "—"}</span>
+        <div className="flex items-center gap-3 text-[11px] text-tertiary shrink-0">
+          <span
+            className={cn(
+              "uppercase tracking-[0.1em] font-medium",
+              status === "online" ? "text-status-green" : "text-tertiary"
+            )}
+          >
+            {status}
+          </span>
+          <span className="tabular">{display.latencyMs !== null ? `${Math.round(display.latencyMs)}ms` : "—"}</span>
         </div>
       </div>
 

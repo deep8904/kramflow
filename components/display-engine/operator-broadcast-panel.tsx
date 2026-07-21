@@ -7,26 +7,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
-import { SectionLabel } from "@/components/tv/section-label";
 import { useDisplayEngine } from "@/lib/display-engine/store";
 import { EMERGENCY_PRESETS, type BroadcastType } from "@/lib/display-engine/types";
 import { cn } from "@/lib/utils";
 
-const QUICK_TYPES: { value: BroadcastType; label: string; tone: string }[] = [
-  { value: "info", label: "Info", tone: "bg-status-blue/15 text-status-blue" },
-  { value: "reminder", label: "Reminder", tone: "bg-status-blue/15 text-status-blue" },
-  { value: "warning", label: "Warning", tone: "bg-status-orange/15 text-status-orange" },
-  { value: "success", label: "Success", tone: "bg-status-green/15 text-status-green" },
+const QUICK_TYPES: {
+  value: BroadcastType;
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+}[] = [
+  {
+    value: "info",
+    label: "Info",
+    bg: "bg-status-blue/10",
+    text: "text-status-blue",
+    border: "border-status-blue/20",
+  },
+  {
+    value: "reminder",
+    label: "Reminder",
+    bg: "bg-status-blue/10",
+    text: "text-status-blue",
+    border: "border-status-blue/20",
+  },
+  {
+    value: "warning",
+    label: "Warning",
+    bg: "bg-status-orange/10",
+    text: "text-status-orange",
+    border: "border-status-orange/20",
+  },
+  {
+    value: "success",
+    label: "Success",
+    bg: "bg-status-green/10",
+    text: "text-status-green",
+    border: "border-status-green/20",
+  },
 ];
 
-/**
- * Quick-send broadcast controls embedded directly in the Operator
- * Dashboard's Controls panel — collapsed by default so it adds zero
- * visual weight until an operator opens it. Covers the common case (a
- * quick message to every display) plus one-tap emergency presets; the
- * full Broadcast Center (/broadcast) stays linked for scheduling,
- * templates, drafts, history, and per-display targeting.
- */
 export function OperatorBroadcastPanel() {
   const { sendBroadcast } = useDisplayEngine();
   const toast = useToast();
@@ -57,23 +78,28 @@ export function OperatorBroadcastPanel() {
   }
 
   return (
-    <div className="border-t border-white/5 pt-8">
+    <div className="border-t border-[var(--color-border)] pt-6">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="flex items-center justify-between w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
+        className="flex items-center justify-between w-full cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded"
       >
-        <SectionLabel>Broadcast</SectionLabel>
+        <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">
+          Broadcast
+        </p>
         <ChevronDown
-          className={cn("h-4 w-4 text-muted-2 transition-transform", expanded && "rotate-180")}
-          strokeWidth={2}
+          className={cn(
+            "h-3.5 w-3.5 text-tertiary transition-transform",
+            expanded && "rotate-180"
+          )}
+          strokeWidth={1.5}
         />
       </button>
 
       {expanded && (
-        <div className="mt-4 flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-col gap-2.5">
+          <div className="flex flex-wrap gap-1.5">
             {QUICK_TYPES.map((t) => (
               <button
                 key={t.value}
@@ -81,10 +107,12 @@ export function OperatorBroadcastPanel() {
                 onClick={() => setType(t.value)}
                 aria-pressed={type === t.value}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-caption font-semibold uppercase tracking-wide transition-opacity cursor-pointer whitespace-nowrap",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                  t.tone,
-                  type !== t.value && "opacity-40"
+                  "rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-all cursor-pointer border",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20",
+                  t.bg,
+                  t.text,
+                  t.border,
+                  type !== t.value && "opacity-35"
                 )}
               >
                 {t.label}
@@ -92,7 +120,12 @@ export function OperatorBroadcastPanel() {
             ))}
           </div>
 
-          <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Broadcast title" />
+          <Input
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label="Broadcast title"
+          />
           <Input
             placeholder="Message (optional)"
             value={message}
@@ -100,28 +133,34 @@ export function OperatorBroadcastPanel() {
             aria-label="Broadcast message"
           />
 
-          <Button variant="primary" size="sm" className="w-full" disabled={!title.trim()} onClick={send}>
-            <Send className="h-4 w-4" strokeWidth={2} />
+          <Button
+            variant="primary"
+            size="sm"
+            className="w-full"
+            disabled={!title.trim()}
+            onClick={send}
+          >
+            <Send className="h-3.5 w-3.5" strokeWidth={1.5} />
             Send to All Displays
           </Button>
 
           <Link
             href="/broadcast"
-            className="text-caption text-muted-2 hover:text-primary text-center underline-offset-2 hover:underline"
+            className="text-[11px] text-tertiary hover:text-secondary text-center transition-colors"
           >
-            More options — schedule, templates, target one display →
+            More options: schedule, templates, target display &rarr;
           </Link>
 
-          <div className="border-t border-white/5 pt-3 mt-1">
-            <div className="flex flex-wrap gap-2">
+          <div className="border-t border-[var(--color-border)] pt-2.5 mt-1">
+            <div className="flex flex-wrap gap-1.5">
               {EMERGENCY_PRESETS.map((preset) => (
                 <button
                   key={preset.label}
                   type="button"
                   onClick={() => emergencyConfirm.request(preset)}
-                  className="flex items-center gap-1.5 rounded-full bg-status-red/15 text-status-red px-3 py-1.5 text-caption font-semibold cursor-pointer hover:bg-status-red/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="flex items-center gap-1.5 rounded-lg bg-status-red/10 border border-status-red/20 text-status-red px-2.5 py-1 text-[10px] font-semibold cursor-pointer hover:bg-status-red/18 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-red/30"
                 >
-                  <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
+                  <AlertTriangle className="h-3 w-3" strokeWidth={2} />
                   {preset.label}
                 </button>
               ))}

@@ -14,12 +14,17 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-1 text-caption font-semibold uppercase tracking-wide",
-        tone === "green" && "bg-status-green/15 text-status-green",
-        tone === "blue" && "bg-status-blue/15 text-status-blue",
-        tone === "orange" && "bg-status-orange/15 text-status-orange",
-        tone === "red" && "bg-status-red/15 text-status-red",
-        tone === "muted" && "bg-white/5 text-muted-2",
+        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+        tone === "green" &&
+          "bg-status-green/10 text-status-green border border-status-green/20",
+        tone === "blue" &&
+          "bg-status-blue/10 text-status-blue border border-status-blue/20",
+        tone === "orange" &&
+          "bg-status-orange/10 text-status-orange border border-status-orange/20",
+        tone === "red" &&
+          "bg-status-red/10 text-status-red border border-status-red/20",
+        tone === "muted" &&
+          "bg-surface-2 text-tertiary border border-[var(--color-border)]",
         className
       )}
     >

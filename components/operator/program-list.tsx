@@ -2,7 +2,6 @@
 
 import { useEventStore } from "@/lib/store";
 import { effectiveNotes, type Session, type Program } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +9,8 @@ type RowStatus = "upcoming" | "live" | "done";
 
 export function ProgramList({ session }: { session: Session }) {
   const { state, jumpTo } = useEventStore();
-  const currentOrder = state.progressBySession[state.activeSessionId]?.currentOrder ?? null;
+  const currentOrder =
+    state.progressBySession[state.activeSessionId]?.currentOrder ?? null;
   const jumpConfirm = useConfirmDialog<Program>();
 
   return (
@@ -24,25 +24,31 @@ export function ProgramList({ session }: { session: Session }) {
               : program.order < currentOrder
                 ? "done"
                 : "upcoming";
-        const previousSection = index > 0 ? session.items[index - 1].sectionLabel : null;
-        const showSectionHeader = program.sectionLabel && program.sectionLabel !== previousSection;
+        const previousSection =
+          index > 0 ? session.items[index - 1].sectionLabel : null;
+        const showSectionHeader =
+          program.sectionLabel && program.sectionLabel !== previousSection;
         const hasNotes = effectiveNotes(state, program).length > 0;
 
-        // Clicking the already-live row would be a no-op jump — skip the
-        // confirm dialog entirely rather than show a pointless prompt.
-        const onClick = status === "live" ? undefined : () => jumpConfirm.request(program);
+        const onClick =
+          status === "live" ? undefined : () => jumpConfirm.request(program);
 
         return (
           <div key={program.id}>
             {showSectionHeader && (
-              <p className="text-caption uppercase tracking-wide text-muted-2 mt-10 mb-3 px-3 first:mt-0">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium mt-8 mb-2.5 px-3 first:mt-0">
                 {program.sectionLabel}
               </p>
             )}
             {program.type === "break" ? (
               <BreakRow program={program} status={status} onClick={onClick} />
             ) : (
-              <ItemRow program={program} status={status} hasNotes={hasNotes} onClick={onClick} />
+              <ItemRow
+                program={program}
+                status={status}
+                hasNotes={hasNotes}
+                onClick={onClick}
+              />
             )}
           </div>
         );
@@ -63,9 +69,24 @@ export function ProgramList({ session }: { session: Session }) {
   );
 }
 
-function StatusBadge({ status }: { status: RowStatus }) {
-  if (status === "live") return <Badge tone="green">Live</Badge>;
-  if (status === "done") return <Badge tone="muted">Done</Badge>;
+function StatusPip({ status }: { status: RowStatus }) {
+  if (status === "live") {
+    return (
+      <span className="flex items-center gap-1.5 shrink-0">
+        <span className="h-1.5 w-1.5 rounded-full bg-status-green live-pulse" />
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-status-green">
+          Live
+        </span>
+      </span>
+    );
+  }
+  if (status === "done") {
+    return (
+      <span className="text-[10px] font-medium uppercase tracking-wide text-tertiary shrink-0">
+        Done
+      </span>
+    );
+  }
   return null;
 }
 
@@ -86,15 +107,25 @@ function BreakRow({
       aria-current={status === "live" ? "true" : undefined}
       aria-label={`Jump to ${program.title}${status === "live" ? " (live)" : ""}`}
       className={cn(
-        "w-full flex items-center gap-3 sm:gap-5 py-3 px-3 rounded-lg transition-colors border-b border-white/5 text-left",
-        onClick ? "cursor-pointer hover:bg-card" : "cursor-default",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        status === "live" && "bg-card"
+        "w-full flex items-center gap-4 py-2.5 px-3 rounded-lg transition-colors text-left",
+        "border-b border-[var(--color-border)] last:border-0",
+        onClick ? "cursor-pointer hover:bg-surface-1" : "cursor-default",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        status === "live" && "bg-surface-1"
       )}
     >
-      <span className="w-6 sm:w-7 text-caption text-muted-2 tabular-nums shrink-0">{program.order}</span>
-      <p className="text-body text-muted-2 italic flex-1 min-w-0 truncate">{program.title}</p>
-      <StatusBadge status={status} />
+      <span className="w-6 text-[11px] text-tertiary tabular shrink-0 text-right">
+        {program.order}
+      </span>
+      <p
+        className={cn(
+          "text-[13px] italic flex-1 min-w-0 truncate",
+          status === "done" ? "text-tertiary" : "text-secondary"
+        )}
+      >
+        {program.title}
+      </p>
+      <StatusPip status={status} />
     </button>
   );
 }
@@ -110,10 +141,6 @@ function ItemRow({
   hasNotes: boolean;
   onClick?: () => void;
 }) {
-  const meta = [program.presenter, program.scheduledStart, program.durationMinutes > 0 ? `${program.durationMinutes}m` : null]
-    .filter(Boolean)
-    .join(" · ");
-
   return (
     <button
       type="button"
@@ -122,41 +149,78 @@ function ItemRow({
       aria-current={status === "live" ? "true" : undefined}
       aria-label={`Jump to ${program.title}${program.presenter ? `, ${program.presenter}` : ""}${status === "live" ? " (live)" : status === "done" ? " (done)" : ""}`}
       className={cn(
-        "w-full flex items-start sm:items-center gap-3 sm:gap-5 py-4 sm:py-5 px-3 rounded-lg transition-colors border-b border-white/5 text-left",
-        onClick ? "cursor-pointer hover:bg-card" : "cursor-default",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        status === "live" && "bg-card"
+        "w-full flex items-center gap-4 py-3 px-3 rounded-lg transition-colors text-left",
+        "border-b border-[var(--color-border)] last:border-0",
+        onClick ? "cursor-pointer hover:bg-surface-1" : "cursor-default",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        status === "live" && "bg-surface-1"
       )}
     >
-      <span className="w-6 sm:w-7 text-caption text-muted-2 tabular-nums shrink-0 pt-0.5 sm:pt-0">
+      {/* Order number */}
+      <span className="w-6 text-[11px] text-tertiary tabular shrink-0 text-right">
         {program.order}
       </span>
 
-      <div className="min-w-0 flex-1">
-        {program.kicker && <p className="text-caption text-muted-2 truncate">{program.kicker}</p>}
-        <div className="flex items-center gap-2">
-          <p className="text-body text-primary truncate">{program.title}</p>
-          {hasNotes && <span className="h-1.5 w-1.5 rounded-full bg-status-orange shrink-0" />}
-        </div>
+      {/* Live indicator bar */}
+      <span
+        className={cn(
+          "w-0.5 h-7 rounded-full shrink-0 transition-colors",
+          status === "live"
+            ? "bg-status-green"
+            : status === "done"
+              ? "bg-tertiary/20"
+              : "bg-transparent"
+        )}
+        aria-hidden="true"
+      />
 
-        {/* Mobile: presenter/time/duration collapse under the title instead
-            of fighting it for space in fixed-width columns. */}
-        {meta && <p className="text-caption text-muted-2 truncate mt-0.5 sm:hidden">{meta}</p>}
+      {/* Content */}
+      <div className="min-w-0 flex-1">
+        {program.kicker && (
+          <p className="text-[10px] text-tertiary truncate uppercase tracking-wide">
+            {program.kicker}
+          </p>
+        )}
+        <div className="flex items-center gap-2">
+          <p
+            className={cn(
+              "text-[14px] font-medium truncate",
+              status === "done" ? "text-tertiary" : "text-primary"
+            )}
+          >
+            {program.title}
+          </p>
+          {hasNotes && (
+            <span
+              className="h-1 w-1 rounded-full bg-status-orange shrink-0"
+              title="Has notes"
+            />
+          )}
+        </div>
         {program.presenter && (
-          <p className="hidden sm:block text-caption text-muted truncate mt-0.5">{program.presenter}</p>
+          <p className="text-[11px] text-secondary truncate mt-0.5">
+            {program.presenter}
+          </p>
         )}
       </div>
 
-      <span className="hidden sm:inline text-caption text-muted-2 tabular-nums shrink-0 w-16 text-right">
-        {program.scheduledStart ?? ""}
-      </span>
+      {/* Time + duration */}
+      <div className="hidden sm:flex flex-col items-end gap-0.5 shrink-0 min-w-[60px]">
+        {program.scheduledStart && (
+          <span className="text-[11px] text-tertiary tabular">
+            {program.scheduledStart}
+          </span>
+        )}
+        {program.durationMinutes > 0 && (
+          <span className="text-[11px] text-tertiary tabular">
+            {program.durationMinutes}m
+          </span>
+        )}
+      </div>
 
-      <span className="hidden sm:inline text-caption text-muted-2 tabular-nums shrink-0 w-12 text-right">
-        {program.durationMinutes > 0 ? `${program.durationMinutes}m` : "—"}
-      </span>
-
-      <div className="w-auto sm:w-16 flex justify-end shrink-0">
-        <StatusBadge status={status} />
+      {/* Status */}
+      <div className="w-14 flex justify-end shrink-0">
+        <StatusPip status={status} />
       </div>
     </button>
   );

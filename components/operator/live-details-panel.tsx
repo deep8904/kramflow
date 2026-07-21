@@ -6,7 +6,6 @@ import { useEventStore } from "@/lib/store";
 import { useCountdown } from "@/lib/use-countdown";
 import { ProgressBar } from "@/components/tv/progress-bar";
 import { HoldBadge } from "@/components/tv/hold-badge";
-import { SectionLabel } from "@/components/tv/section-label";
 import { Button } from "@/components/ui/button";
 
 export function LiveDetailsPanel({ session }: { session: Session }) {
@@ -14,19 +13,17 @@ export function LiveDetailsPanel({ session }: { session: Session }) {
   const live = getLive(session, state);
   const progress = state.progressBySession[state.activeSessionId];
   const currentOrder = progress?.currentOrder ?? null;
-  const countdown = useCountdown(progress?.startedAt ?? null, live?.durationMinutes ?? 0, state.pausedAt);
-  const isFinished = currentOrder !== null && currentOrder > session.items.length;
+  const countdown = useCountdown(
+    progress?.startedAt ?? null,
+    live?.durationMinutes ?? 0,
+    state.pausedAt
+  );
+  const isFinished =
+    currentOrder !== null && currentOrder > session.items.length;
 
-  // Controlled + an explicit Save button, not save-on-blur — a stray click
-  // away from the textarea (switching panels, clicking a control) used to
-  // silently commit whatever was typed, with no review step.
   const [draft, setDraft] = useState(live?.notes ?? "");
   const [saving, setSaving] = useState(false);
-  // Reset the draft whenever the live item or its stored notes change —
-  // done during render (React's documented "adjusting state when a prop
-  // changes" pattern) rather than in a useEffect, which would run an
-  // extra render-after-commit cycle for what's really a synchronous
-  // derivation.
+
   const notesKey = `${live?.id ?? ""}:${live?.notes ?? ""}`;
   const [trackedNotesKey, setTrackedNotesKey] = useState(notesKey);
   if (notesKey !== trackedNotesKey) {
@@ -37,8 +34,10 @@ export function LiveDetailsPanel({ session }: { session: Session }) {
   if (currentOrder === null || isFinished || !live) {
     return (
       <div className="h-full flex items-center">
-        <p className="text-body text-muted-2">
-          {isFinished ? "Session finished." : "Press Start to begin the program."}
+        <p className="text-[13px] text-tertiary">
+          {isFinished
+            ? "Session finished."
+            : "Press Start to begin the program."}
         </p>
       </div>
     );
@@ -57,36 +56,69 @@ export function LiveDetailsPanel({ session }: { session: Session }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2">
-        <SectionLabel>Live Now</SectionLabel>
+    <div className="flex flex-col h-full gap-0">
+      {/* Section label */}
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">
+          Live Now
+        </p>
         {state.pausedAt && <HoldBadge />}
       </div>
 
-      {live.kicker && <p className="text-caption text-muted-2 mt-3">{live.kicker}</p>}
-      <p className="text-subtitle text-primary mt-1">{live.title}</p>
-      {live.presenter && <p className="text-body text-muted mt-2">{live.presenter}</p>}
-
-      {live.type === "item" && live.durationMinutes > 0 && (
-        <div className="mt-8">
-          <p className="text-[3rem] leading-none font-semibold text-primary tabular-nums">
-            {countdown.label}
+      {/* Current item */}
+      <div className="bg-surface-1 border border-[var(--color-border)] rounded-xl p-4">
+        {live.kicker && (
+          <p className="text-[10px] uppercase tracking-wider text-tertiary mb-1">
+            {live.kicker}
           </p>
-          <div className="mt-3">
+        )}
+        <p className="text-[17px] font-semibold text-primary leading-snug">
+          {live.title}
+        </p>
+        {live.presenter && (
+          <p className="text-[13px] text-secondary mt-1.5">{live.presenter}</p>
+        )}
+
+        {/* Countdown */}
+        {live.type === "item" && live.durationMinutes > 0 && (
+          <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
+            <div className="flex items-baseline justify-between mb-2.5">
+              <p
+                className={cn(
+                  "text-[2.75rem] leading-none font-semibold tabular tracking-tight",
+                  state.pausedAt
+                    ? "text-status-orange"
+                    : countdown.isOverrun
+                      ? "text-status-red"
+                      : "text-primary"
+                )}
+              >
+                {countdown.label}
+              </p>
+              <p className="text-[11px] text-tertiary">
+                {countdown.isOverrun ? "overrun" : "remaining"}
+              </p>
+            </div>
             <ProgressBar
               fraction={countdown.fraction}
-              tone={state.pausedAt ? "orange" : countdown.isOverrun ? "red" : "green"}
+              tone={
+                state.pausedAt
+                  ? "orange"
+                  : countdown.isOverrun
+                    ? "red"
+                    : "green"
+              }
             />
           </div>
-          <p className="text-caption text-muted mt-2">
-            {countdown.isOverrun ? "over" : "remaining"}
-          </p>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div className="mt-10 flex-1 flex flex-col min-h-0">
-        <div className="flex items-center justify-between">
-          <SectionLabel>Notes</SectionLabel>
+      {/* Notes */}
+      <div className="mt-5 flex-1 flex flex-col min-h-0">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium">
+            Stage Notes
+          </p>
           {dirty && (
             <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : "Save"}
@@ -97,11 +129,16 @@ export function LiveDetailsPanel({ session }: { session: Session }) {
           key={live.id}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Stage notes — cues, mic setup, entrances…"
+          placeholder="Cues, mic setup, entrances, timing notes…"
           aria-label="Stage notes"
-          className="mt-3 w-full flex-1 min-h-24 rounded-lg bg-card border border-white/10 px-4 py-3 text-body text-primary placeholder:text-muted-2 outline-none focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background resize-none"
+          className="w-full flex-1 min-h-24 rounded-xl bg-surface-1 border border-[var(--color-border)] px-4 py-3 text-[13px] text-primary placeholder:text-tertiary outline-none focus:border-[var(--color-border-strong)] focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background resize-none transition-colors"
         />
       </div>
     </div>
   );
+}
+
+// cn is not imported at the top of this file, import here inline
+function cn(...classes: (string | undefined | false)[]) {
+  return classes.filter(Boolean).join(" ");
 }

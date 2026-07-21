@@ -12,7 +12,7 @@ export function ProgressBar({
 }) {
   const clamped = Math.min(1, Math.max(0, fraction));
   return (
-    <div className="h-2 w-full rounded-full bg-card overflow-hidden">
+    <div className="h-1 w-full rounded-full bg-surface-2 overflow-hidden">
       <motion.div
         className={cn(
           "h-full rounded-full",
@@ -22,7 +22,7 @@ export function ProgressBar({
         )}
         initial={false}
         animate={{ width: `${clamped * 100}%` }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       />
     </div>
   );

@@ -5,7 +5,6 @@ import { ChevronLeft, Pause, Play, Square, ChevronRight } from "lucide-react";
 import { useEventStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { SectionLabel } from "@/components/tv/section-label";
 import { JumpControl } from "./jump-control";
 import { AlertComposer } from "./alert-composer";
 import { ActivityLog } from "./activity-log";
@@ -24,15 +23,15 @@ export function ControlsPanel({ session }: { session: Session }) {
   const isLastItem = currentOrder === max;
 
   const [confirmKind, setConfirmKind] = useState<ConfirmKind>(null);
-  // Disables the button that triggered a request until it resolves, so a
-  // fast double-click can't fire the same action twice before the first
-  // PATCH lands server-side. The ref guard is needed because two clicks
-  // dispatched in the same tick both run before React re-renders with the
-  // disabled prop from setPending.
-  const [pending, setPending] = useState<"next" | "previous" | "hold" | "start" | "finish" | null>(null);
+  const [pending, setPending] = useState<
+    "next" | "previous" | "hold" | "start" | "finish" | null
+  >(null);
   const runningRef = useRef(false);
 
-  async function run(kind: NonNullable<typeof pending>, action: () => Promise<unknown> | unknown) {
+  async function run(
+    kind: NonNullable<typeof pending>,
+    action: () => Promise<unknown> | unknown
+  ) {
     if (runningRef.current) return;
     runningRef.current = true;
     setPending(kind);
@@ -45,10 +44,14 @@ export function ControlsPanel({ session }: { session: Session }) {
   }
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-8">
+      {/* ── Transport controls ─────────────────────────────────── */}
       <div>
-        <SectionLabel>Controls</SectionLabel>
-        <div className="mt-3 flex flex-col gap-3">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium mb-3">
+          Controls
+        </p>
+
+        <div className="flex flex-col gap-2.5">
           {currentOrder === null ? (
             <Button
               variant="primary"
@@ -57,13 +60,15 @@ export function ControlsPanel({ session }: { session: Session }) {
               disabled={pending !== null}
               onClick={() => setConfirmKind("start")}
             >
-              <Play className="h-5 w-5" strokeWidth={2} />
-              Start
+              <Play className="h-5 w-5" strokeWidth={1.5} />
+              Start Session
             </Button>
           ) : (
             <>
               {isFinished ? (
-                <p className="text-body text-muted-2 py-2">Session finished.</p>
+                <div className="rounded-xl bg-surface-1 border border-[var(--color-border)] px-4 py-3 text-center">
+                  <p className="text-[13px] text-tertiary">Session finished</p>
+                </div>
               ) : (
                 <>
                   <Button
@@ -74,7 +79,7 @@ export function ControlsPanel({ session }: { session: Session }) {
                     onClick={() => run("next", () => next(max))}
                   >
                     Next
-                    <ChevronRight className="h-5 w-5" strokeWidth={2} />
+                    <ChevronRight className="h-5 w-5" strokeWidth={1.5} />
                   </Button>
                   {isLastItem && (
                     <Button
@@ -84,13 +89,14 @@ export function ControlsPanel({ session }: { session: Session }) {
                       disabled={pending !== null}
                       onClick={() => setConfirmKind("finish")}
                     >
-                      <Square className="h-5 w-5" strokeWidth={2} />
+                      <Square className="h-4 w-4" strokeWidth={1.5} />
                       Finish Session
                     </Button>
                   )}
                 </>
               )}
-              <div className="flex items-center gap-3">
+
+              <div className="flex items-center gap-2">
                 <Button
                   variant="secondary"
                   size="md"
@@ -98,7 +104,7 @@ export function ControlsPanel({ session }: { session: Session }) {
                   onClick={() => run("previous", () => previous(min))}
                   disabled={currentOrder === min || pending !== null}
                 >
-                  <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+                  <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
                   Previous
                 </Button>
                 <Button
@@ -110,9 +116,9 @@ export function ControlsPanel({ session }: { session: Session }) {
                   aria-label={state.pausedAt ? "Resume" : "Hold"}
                 >
                   {state.pausedAt ? (
-                    <Play className="h-4 w-4" strokeWidth={2} />
+                    <Play className="h-4 w-4" strokeWidth={1.5} />
                   ) : (
-                    <Pause className="h-4 w-4" strokeWidth={2} />
+                    <Pause className="h-4 w-4" strokeWidth={1.5} />
                   )}
                   {state.pausedAt ? "Resume" : "Hold"}
                 </Button>
@@ -122,20 +128,25 @@ export function ControlsPanel({ session }: { session: Session }) {
         </div>
       </div>
 
-      <div className="border-t border-white/5 pt-8">
+      {/* ── Jump ───────────────────────────────────────────────── */}
+      <div className="border-t border-[var(--color-border)] pt-6">
         <JumpControl max={max} />
       </div>
 
-      <div className="border-t border-white/5 pt-8">
+      {/* ── Alert ──────────────────────────────────────────────── */}
+      <div className="border-t border-[var(--color-border)] pt-6">
         <AlertComposer />
       </div>
 
+      {/* ── Broadcasts ─────────────────────────────────────────── */}
       <OperatorBroadcastPanel />
 
-      <div className="border-t border-white/5 pt-8">
+      {/* ── Activity ───────────────────────────────────────────── */}
+      <div className="border-t border-[var(--color-border)] pt-6">
         <ActivityLog />
       </div>
 
+      {/* Confirm dialogs */}
       <ConfirmDialog
         open={confirmKind === "start"}
         title="Start the session?"

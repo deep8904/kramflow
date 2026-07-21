@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, Copy, Send, Star, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Copy, Lock, Send, Star, Trash2, X } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-context";
 import { useDisplayEngine } from "@/lib/display-engine/store";
 import {
@@ -13,7 +13,6 @@ import {
   type DisplayType,
 } from "@/lib/display-engine/types";
 import { Button } from "@/components/ui/button";
-import { SectionLabel } from "@/components/tv/section-label";
 import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -37,7 +36,7 @@ const DISPLAY_TYPES: { value: DisplayType; label: string }[] = [
 ];
 
 const inputField =
-  "w-full bg-card border border-white/10 rounded-lg px-3 py-2 text-[15px] text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "w-full bg-surface-1 border border-[var(--color-border)] rounded-lg px-3 py-2 text-[13px] text-primary placeholder:text-tertiary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:ring-offset-1 focus-visible:ring-offset-background transition-colors hover:border-[var(--color-border-strong)]";
 
 const EMPTY_DRAFT: BroadcastDraft = {
   type: "info",
@@ -162,47 +161,52 @@ export default function BroadcastCenterPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <header className="flex items-center justify-between gap-4 px-4 sm:px-6 xl:px-12 py-4 xl:py-6 border-b border-white/5">
-        <div className="flex items-center gap-4 min-w-0">
+      <header className="flex items-center justify-between gap-4 px-5 sm:px-7 xl:px-10 py-3.5 border-b border-[var(--color-border)] bg-background/95 backdrop-blur-sm sticky top-0 z-20">
+        <div className="flex items-center gap-3 min-w-0">
           <Link href="/operator">
             <Button variant="ghost" size="sm" aria-label="Back to Operator Dashboard">
-              <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+              <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
             </Button>
           </Link>
+          <span className="h-4 w-px bg-[var(--color-border)]" aria-hidden="true" />
           <div className="min-w-0">
-            <p className="text-caption uppercase tracking-wide text-muted-2">KramFlow</p>
-            <h1 className="text-title text-primary mt-1">Broadcast Center</h1>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-tertiary font-medium">KramFlow</p>
+            <h1 className="text-[17px] font-semibold text-primary tracking-tight mt-0.5">Broadcast Center</h1>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={lock}>
-          Lock
+        <Button variant="ghost" size="sm" onClick={lock} className="text-tertiary hover:text-primary">
+          <Lock className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <span className="hidden sm:inline">Lock</span>
         </Button>
       </header>
 
       {/* Emergency quick-send */}
-      <div className="px-4 sm:px-6 xl:px-12 pt-6">
-        <SectionLabel>Emergency Broadcast — Overrides Every Display</SectionLabel>
-        <div className="mt-3 flex flex-wrap gap-3">
+      <div className="px-5 sm:px-7 xl:px-10 pt-6">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium mb-3">
+          Emergency Broadcast — Overrides Every Display
+        </p>
+        <div className="flex flex-wrap gap-2">
           {EMERGENCY_PRESETS.map((preset) => (
             <button
               key={preset.label}
               type="button"
               onClick={() => emergencyConfirm.request(preset)}
-              className="flex items-center gap-2 rounded-full bg-status-red/15 text-status-red px-4 py-2 text-body font-semibold cursor-pointer hover:bg-status-red/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="flex items-center gap-2 rounded-lg bg-status-red/10 border border-status-red/20 text-status-red px-3.5 py-2 text-[13px] font-semibold cursor-pointer hover:bg-status-red/18 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-red/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
             >
-              <AlertTriangle className="h-4 w-4" strokeWidth={2} />
+              <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
               {preset.label}
             </button>
           ))}
         </div>
 
         {engine.broadcasts.active.some((m) => m.type === "emergency") && (
-          <div className="mt-4 rounded-card bg-status-red/10 border border-status-red/30 px-6 py-3 flex items-center justify-between">
-            <p className="text-caption text-status-red font-medium">An emergency broadcast is currently active.</p>
+          <div className="mt-4 rounded-xl bg-status-red/8 border border-status-red/20 px-5 py-3 flex items-center justify-between">
+            <p className="text-[13px] text-status-red font-medium">An emergency broadcast is currently active.</p>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => destructiveConfirm.request({ kind: "clear-emergencies" })}
+              className="text-status-red hover:text-status-red"
             >
               Clear
             </Button>
@@ -210,11 +214,11 @@ export default function BroadcastCenterPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-8 px-4 sm:px-6 xl:px-12 py-8">
+      <div className="grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-8 px-5 sm:px-7 xl:px-10 py-8">
         {/* Compose */}
         <div>
-          <SectionLabel>Compose</SectionLabel>
-          <div className="mt-4 flex flex-col gap-4">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary font-medium mb-4">Compose</p>
+          <div className="flex flex-col gap-4">
             <Field label="Type">
               <select
                 value={draft.type}
@@ -428,7 +432,7 @@ export default function BroadcastCenterPage() {
         {/* History / Scheduled / Templates / Drafts */}
         <div className="min-w-0">
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-1 rounded-full bg-card p-1">
+            <div className="flex items-center gap-1 rounded-xl bg-surface-1 border border-[var(--color-border)] p-1">
               <TabButton active={tab === "history"} onClick={() => setTab("history")}>
                 History
               </TabButton>
@@ -458,15 +462,15 @@ export default function BroadcastCenterPage() {
                 <EmptyState text="No broadcasts sent yet." />
               ) : (
                 filteredHistory.map((m) => (
-                  <div key={m.id} className="rounded-card bg-card px-6 py-4 flex items-start justify-between gap-4">
+                  <div key={m.id} className="rounded-xl bg-surface-1 border border-[var(--color-border)] px-5 py-4 flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-caption uppercase tracking-wide text-muted-2">
-                        {m.type} • {new Date(m.createdAt).toLocaleString()}
+                      <p className="text-[10px] uppercase tracking-[0.1em] text-tertiary font-medium">
+                        {m.type} · {new Date(m.createdAt).toLocaleString()}
                       </p>
-                      <p className="text-body text-primary font-medium mt-1">{m.title}</p>
-                      {m.message && <p className="text-caption text-muted mt-1">{m.message}</p>}
+                      <p className="text-[14px] text-primary font-medium mt-1">{m.title}</p>
+                      {m.message && <p className="text-[12px] text-secondary mt-1">{m.message}</p>}
                       {m.acknowledgementRequired && (
-                        <p className="text-caption text-muted-2 mt-1">Acknowledged by {m.acknowledgedBy.length}</p>
+                        <p className="text-[11px] text-tertiary mt-1">Acknowledged by {m.acknowledgedBy.length}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -488,13 +492,13 @@ export default function BroadcastCenterPage() {
                 <EmptyState text="No broadcasts scheduled." />
               ) : (
                 engine.broadcasts.scheduled.map((m) => (
-                  <div key={m.id} className="rounded-card bg-card px-6 py-4 flex items-start justify-between gap-4">
+                  <div key={m.id} className="rounded-xl bg-surface-1 border border-[var(--color-border)] px-5 py-4 flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-caption uppercase tracking-wide text-muted-2">
+                      <p className="text-[10px] uppercase tracking-[0.1em] text-tertiary font-medium">
                         fires {m.scheduledFor ? new Date(m.scheduledFor).toLocaleString() : "—"}
                       </p>
-                      <p className="text-body text-primary font-medium mt-1">{m.title}</p>
-                      {m.message && <p className="text-caption text-muted mt-1">{m.message}</p>}
+                      <p className="text-[14px] text-primary font-medium mt-1">{m.title}</p>
+                      {m.message && <p className="text-[12px] text-secondary mt-1">{m.message}</p>}
                     </div>
                     <IconButton
                       label="Cancel"
@@ -511,10 +515,10 @@ export default function BroadcastCenterPage() {
                 <EmptyState text="No templates saved yet." />
               ) : (
                 filteredTemplates.map((t) => (
-                  <div key={t.id} className="rounded-card bg-card px-6 py-4 flex items-start justify-between gap-4">
+                  <div key={t.id} className="rounded-xl bg-surface-1 border border-[var(--color-border)] px-5 py-4 flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-caption uppercase tracking-wide text-muted-2">{t.draft.type}</p>
-                      <p className="text-body text-primary font-medium mt-1">{t.name}</p>
+                      <p className="text-[10px] uppercase tracking-[0.1em] text-tertiary font-medium">{t.draft.type}</p>
+                      <p className="text-[14px] text-primary font-medium mt-1">{t.name}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <IconButton
@@ -548,10 +552,10 @@ export default function BroadcastCenterPage() {
                 <EmptyState text="No drafts saved." />
               ) : (
                 engine.broadcasts.drafts.map((d, i) => (
-                  <div key={i} className="rounded-card bg-card px-6 py-4 flex items-start justify-between gap-4">
+                  <div key={i} className="rounded-xl bg-surface-1 border border-[var(--color-border)] px-5 py-4 flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-caption uppercase tracking-wide text-muted-2">{d.type}</p>
-                      <p className="text-body text-primary font-medium mt-1">{d.title || "Untitled draft"}</p>
+                      <p className="text-[10px] uppercase tracking-[0.1em] text-tertiary font-medium">{d.type}</p>
+                      <p className="text-[14px] text-primary font-medium mt-1">{d.title || "Untitled draft"}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <IconButton label="Load" onClick={() => loadIntoCompose(d)}>
@@ -643,29 +647,52 @@ function toDraft(m: { type: BroadcastType; title: string; message: string; icon:
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-caption text-muted-2">{label}</span>
+      <span className="text-[11px] text-tertiary font-medium">{label}</span>
       {children}
     </label>
   );
 }
 
-function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+function Checkbox({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
   return (
     <label className="flex items-center gap-2 cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4" />
-      <span className="text-caption text-muted">{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-3.5 w-3.5 accent-primary"
+      />
+      <span className="text-[13px] text-secondary">{label}</span>
     </label>
   );
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "text-caption font-medium px-4 py-2 rounded-full cursor-pointer transition-colors",
-        active ? "bg-primary text-background" : "text-muted hover:text-primary"
+        "text-[12px] font-medium px-3 py-1.5 rounded-lg cursor-pointer transition-all",
+        active
+          ? "bg-primary text-background"
+          : "text-secondary hover:text-primary"
       )}
     >
       {children}
@@ -673,14 +700,22 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   );
 }
 
-function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+function IconButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="h-8 w-8 rounded-full flex items-center justify-center text-muted hover:text-primary hover:bg-white/5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="h-7 w-7 rounded-lg flex items-center justify-center text-tertiary hover:text-primary hover:bg-surface-2 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
     >
       {children}
     </button>
@@ -688,5 +723,5 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <p className="text-body text-muted-2 py-6">{text}</p>;
+  return <p className="text-[13px] text-tertiary py-8">{text}</p>;
 }
