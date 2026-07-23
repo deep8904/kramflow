@@ -1,60 +1,67 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /*
   KramFlow is dark-mode only by design.
   There is no light theme and no prefers-color-scheme switch.
+  Design tokens aligned with Capital Overview Dashboard MD spec.
 */
 :root {
-  /* Core surfaces */
-  --color-background: #0a0b0e;
-  --color-surface-0: #0a0b0e;      /* page background */
-  --color-surface-1: #111318;      /* card / panel */
-  --color-surface-2: #181b22;      /* elevated card */
-  --color-surface-3: #1f232d;      /* hover state */
-  --color-border: rgba(255,255,255,0.06);
+  /* Core surfaces — from Capital Overview MD */
+  --color-background: #0E0E10;
+  --color-surface-0: #0E0E10;
+  --color-surface-1: #18181C;
+  --color-surface-2: #1f1f25;
+  --color-surface-3: #27272e;
+  --color-border: #27272A;
   --color-border-strong: rgba(255,255,255,0.12);
 
   /* Typography */
-  --color-primary: #f0f2f5;
-  --color-secondary: #8b93a5;
-  --color-tertiary: #555e72;
+  --color-primary: #FFFFFF;
+  --color-secondary: #A1A1AA;
+  --color-tertiary: #52525B;
 
-  /* Backwards-compatible aliases used throughout components */
+  /* Backwards-compatible aliases */
   --color-card: var(--color-surface-1);
   --color-card-hover: var(--color-surface-3);
   --color-muted: var(--color-secondary);
   --color-muted-2: var(--color-tertiary);
 
+  /* Accent — indigo/violet from Capital Overview MD */
+  --color-accent: #818CF8;
+  --color-accent-pink: #F472B6;
+
   /* Status / semantic */
   --color-green:  #22c55e;
-  --color-blue:   #3b82f6;
+  --color-blue:   #818CF8;
   --color-orange: #f59e0b;
   --color-red:    #ef4444;
-
-  /* Accent — used for active/focus rings only */
-  --color-accent: #3b82f6;
 }
 
 @theme inline {
   /* Surfaces */
-  --color-background:   var(--color-background);
-  --color-surface-0:    var(--color-surface-0);
-  --color-surface-1:    var(--color-surface-1);
-  --color-surface-2:    var(--color-surface-2);
-  --color-surface-3:    var(--color-surface-3);
-  --color-border:       var(--color-border);
+  --color-background:    var(--color-background);
+  --color-surface-0:     var(--color-surface-0);
+  --color-surface-1:     var(--color-surface-1);
+  --color-surface-2:     var(--color-surface-2);
+  --color-surface-3:     var(--color-surface-3);
+  --color-border:        var(--color-border);
   --color-border-strong: var(--color-border-strong);
 
   /* Backwards-compatible aliases */
-  --color-card:         var(--color-card);
-  --color-card-hover:   var(--color-card-hover);
+  --color-card:          var(--color-card);
+  --color-card-hover:    var(--color-card-hover);
 
   /* Typography */
-  --color-primary:      var(--color-primary);
-  --color-secondary:    var(--color-secondary);
-  --color-tertiary:     var(--color-tertiary);
-  --color-muted:        var(--color-muted);
-  --color-muted-2:      var(--color-muted-2);
+  --color-primary:   var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-tertiary:  var(--color-tertiary);
+  --color-muted:     var(--color-muted);
+  --color-muted-2:   var(--color-muted-2);
+
+  /* Accent */
+  --color-accent:      var(--color-accent);
+  --color-accent-pink: var(--color-accent-pink);
 
   /* Status */
   --color-status-green:  var(--color-green);
@@ -62,15 +69,16 @@
   --color-status-orange: var(--color-orange);
   --color-status-red:    var(--color-red);
 
-  /* Font */
-  --font-sans: var(--font-inter);
+  /* Fonts — Inter for display, JetBrains Mono for labels */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
-  /* Radius */
-  --radius-card: 0.875rem; /* 14px */
-  --radius-sm:   0.5rem;   /* 8px */
-  --radius-lg:   1.25rem;  /* 20px */
+  /* Radius — card: 16px per Capital Overview MD */
+  --radius-card: 1rem;   /* 16px */
+  --radius-sm:   0.5rem; /* 8px */
+  --radius-lg:   1.25rem;/* 20px */
 
-  /* TV-first type scale — readable from 5–15ft */
+  /* TV-first type scale */
   --text-hero: 5.25rem;
   --text-hero--line-height: 1.05;
   --text-hero--letter-spacing: -0.02em;
@@ -94,7 +102,7 @@
   --text-caption--font-weight: 500;
 
   /* Animations */
-  --animate-fade-in: fade-in 200ms ease-out;
+  --animate-fade-in:  fade-in  200ms ease-out;
   --animate-slide-up: slide-up 240ms cubic-bezier(0.16, 1, 0.3, 1);
 
   @keyframes fade-in {
